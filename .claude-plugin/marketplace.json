@@ -1,5 +1,4 @@
 {
-  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "neoeinstein-plugins",
   "version": "1.0.0",
   "description": "Claude Code plugins for Rust development, Askama templates, HTMX+Alpine patterns, and mise toolchain management",
