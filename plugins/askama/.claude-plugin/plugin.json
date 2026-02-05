@@ -1,0 +1,12 @@
+{
+  "name": "askama",
+  "version": "0.1.0",
+  "description": "Askama Rust template engine guidance for writing and debugging templates",
+  "author": {
+    "name": "Marcus Griep",
+    "email": "marcus@griep.us"
+  },
+  "repository": "https://github.com/neoeinstein/claude-plugins",
+  "license": "MIT",
+  "keywords": ["rust", "askama", "templates", "jinja2"]
+}
