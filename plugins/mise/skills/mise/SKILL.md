@@ -88,3 +88,4 @@ npm = "latest"
 | Using `mise.local.toml` in your own repo | Use `mise.toml` — let contributors benefit |
 | Forgetting to run `mise install` after cloning | Add to project setup docs or README |
 | Pinning exact versions when `latest` is fine | Use `latest` for tools where latest is always compatible |
+
