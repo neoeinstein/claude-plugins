@@ -1,0 +1,60 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "neoeinstein-plugins",
+  "version": "1.0.0",
+  "description": "Claude Code plugins for Rust development, Askama templates, HTMX+Alpine patterns, and mise toolchain management",
+  "owner": {
+    "name": "Marcus Griep",
+    "email": "marcus@griep.us"
+  },
+  "metadata": {
+    "description": "Development plugins for Rust, Askama, HTMX+Alpine, and mise",
+    "pluginRoot": "./plugins"
+  },
+  "plugins": [
+    {
+      "name": "rust-best-practices",
+      "version": "1.0.0",
+      "description": "Idiomatic Rust development guidance with best practices skill and auto-formatting hook",
+      "source": "rust-best-practices",
+      "category": "development",
+      "author": {
+        "name": "Marcus Griep",
+        "email": "marcus@griep.us"
+      }
+    },
+    {
+      "name": "askama",
+      "version": "0.1.0",
+      "description": "Askama Rust template engine guidance for writing and debugging templates",
+      "source": "askama",
+      "category": "development",
+      "author": {
+        "name": "Marcus Griep",
+        "email": "marcus@griep.us"
+      }
+    },
+    {
+      "name": "htmx-alpine",
+      "version": "0.1.0",
+      "description": "HTMX and Alpine.js patterns for server-driven web applications",
+      "source": "htmx-alpine",
+      "category": "development",
+      "author": {
+        "name": "Marcus Griep",
+        "email": "marcus@griep.us"
+      }
+    },
+    {
+      "name": "mise",
+      "version": "0.1.0",
+      "description": "mise toolchain manager guidance for consistent development environments",
+      "source": "mise",
+      "category": "development",
+      "author": {
+        "name": "Marcus Griep",
+        "email": "marcus@griep.us"
+      }
+    }
+  ]
+}
