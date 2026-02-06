@@ -15,7 +15,7 @@
       "name": "rust-best-practices",
       "version": "1.0.0",
       "description": "Idiomatic Rust development guidance with best practices skill and auto-formatting hook",
-      "source": "rust-best-practices",
+      "source": "./plugins/rust-best-practices",
       "category": "development",
       "author": {
         "name": "Marcus Griep",
@@ -26,7 +26,7 @@
       "name": "askama",
       "version": "0.1.0",
       "description": "Askama Rust template engine guidance for writing and debugging templates",
-      "source": "askama",
+      "source": "./plugins/askama",
       "category": "development",
       "author": {
         "name": "Marcus Griep",
@@ -37,7 +37,7 @@
       "name": "htmx-alpine",
       "version": "0.1.0",
       "description": "HTMX and Alpine.js patterns for server-driven web applications",
-      "source": "htmx-alpine",
+      "source": "./plugins/htmx-alpine",
       "category": "development",
       "author": {
         "name": "Marcus Griep",
@@ -48,7 +48,7 @@
       "name": "mise",
       "version": "0.1.0",
       "description": "mise toolchain manager guidance for consistent development environments",
-      "source": "mise",
+      "source": "./plugins/mise",
       "category": "development",
       "author": {
         "name": "Marcus Griep",
