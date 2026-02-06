@@ -1,6 +1,6 @@
 # neoeinstein-plugins
 
-Last verified: 2026-02-04
+Last verified: 2026-02-05
 
 ## Purpose
 
@@ -49,6 +49,6 @@ Claude Code plugin marketplace. Hosts development-focused plugins distributed vi
 | Plugin | Version | Contents |
 |--------|---------|----------|
 | rust-best-practices | 1.0.0 | Skill + 15 reference docs + rustfmt hook |
-| askama | 0.1.0 | 2 migrated skills, design notes |
-| htmx-alpine | 0.1.0 | 1 stub skill, design notes |
-| mise | 0.1.0 | 1 stub skill, design notes |
+| askama | 1.0.0 | Skill + 5 reference docs |
+| htmx-alpine | 1.0.0 | Skill + 7 reference docs + 1 framework variant |
+| mise | 1.0.0 | Skill + 4 reference docs + SessionStart hook |
