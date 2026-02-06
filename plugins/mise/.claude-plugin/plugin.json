@@ -1,6 +1,6 @@
 {
   "name": "mise",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "mise toolchain manager guidance with SessionStart hook for toolchain detection",
   "author": {
     "name": "Marcus Griep",

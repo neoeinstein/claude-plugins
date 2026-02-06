@@ -9,13 +9,13 @@ Guidance for using mise as a toolchain manager. Covers `mise.toml` (repos you co
 ## Contracts
 
 - **Exposes**: `mise:mise` skill with 4 reference docs
-- **Guarantees**: Reference docs are lazy-loaded via SKILL.md lookup tables. SessionStart hook is fail-open and non-intrusive (single-line suggestion, fires once per project).
+- **Guarantees**: Reference docs are lazy-loaded via SKILL.md lookup tables. SessionStart hook is fail-open, primes agent without prescribing actions, never modifies project directory.
 - **Expects**: User working with or setting up mise for toolchain management
 
 ## Key Decisions
 
 - **mise.toml vs mise.local.toml**: Core distinction emphasized throughout. Team config is committed; personal config is gitignored.
-- **SessionStart hook is minimal**: Creates marker file to fire once per project. Silent if mise.toml exists. No plugin suggestions (too pushy).
+- **SessionStart hook is minimal**: Primes agent that mise is available, doesn't prescribe actions. Silent if config exists. Never writes to project directory.
 - **Troubleshooting has STOP section**: Addresses the "remove mise from CI when rate limited" anti-pattern.
 
 ## Key Files
@@ -33,5 +33,5 @@ Guidance for using mise as a toolchain manager. Covers `mise.toml` (repos you co
 - Every reference doc must be loadable independently
 - SKILL.md lookup tables must cover all reference docs
 - Hook must be fail-open (always exit 0)
-- Hook must fire only once per project (marker file)
-- Hook must be silent when mise.toml exists
+- Hook must never modify the project directory
+- Hook must be silent when any mise config exists
