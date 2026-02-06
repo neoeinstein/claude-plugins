@@ -24,8 +24,8 @@
     },
     {
       "name": "askama",
-      "version": "0.1.0",
-      "description": "Askama Rust template engine guidance for writing and debugging templates",
+      "version": "1.0.0",
+      "description": "Askama Rust template engine guidance with anti-rationalization patterns for scope errors and Jinja2 migration",
       "source": "./plugins/askama",
       "category": "development",
       "author": {
@@ -35,8 +35,8 @@
     },
     {
       "name": "htmx-alpine",
-      "version": "0.1.0",
-      "description": "HTMX and Alpine.js patterns for server-driven web applications",
+      "version": "1.0.0",
+      "description": "HTMX and Alpine.js patterns for server-driven web applications with accessibility and framework-specific guidance",
       "source": "./plugins/htmx-alpine",
       "category": "development",
       "author": {
@@ -46,8 +46,8 @@
     },
     {
       "name": "mise",
-      "version": "0.1.0",
-      "description": "mise toolchain manager guidance for consistent development environments",
+      "version": "1.0.0",
+      "description": "mise toolchain manager guidance with SessionStart hook for toolchain detection",
       "source": "./plugins/mise",
       "category": "development",
       "author": {
