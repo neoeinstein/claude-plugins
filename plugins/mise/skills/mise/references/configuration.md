@@ -79,11 +79,15 @@ rust-analyzer = "latest"
 "cargo:bacon" = "latest"
 ```
 
-Add to global gitignore:
-```bash
-git config --global core.excludesFile ~/.gitignore_global
-echo "mise.local.toml" >> ~/.gitignore_global
-```
+**Ignoring mise.local.toml:** This file should not be committed. Check if it's already ignored with `git check-ignore mise.local.toml`. If not, options include:
+
+| Method | When to use |
+|--------|-------------|
+| Project `.gitignore` with `*.local.*` | You control the repo — benefits all contributors |
+| `.git/info/exclude` | Repo-local but not committed (repos you don't control) |
+| Global excludes file | Applies to all repos |
+
+**Global excludes location:** Git reads `~/.config/git/ignore` by default. Check `git config --global core.excludesFile` — if set, use that path instead.
 
 ### Environment Variables
 
