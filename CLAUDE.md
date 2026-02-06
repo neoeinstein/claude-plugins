@@ -12,9 +12,9 @@ Claude Code plugin marketplace. Hosts development-focused plugins distributed vi
 - `plugins/<name>/` -- Individual plugins, each self-contained
 - `plugins/<name>/.claude-plugin/plugin.json` -- Per-plugin manifest
 - `plugins/<name>/skills/<skill-name>/SKILL.md` -- Skill definitions
+- `plugins/<name>/skills/<skill-name>/references/` -- Lazy-loaded reference docs
 - `plugins/<name>/hooks/` -- Hook scripts + `hooks.json` config
-- `plugins/<name>/docs/` -- Design notes and future plans
-- `docs/design-plans/` -- Implementation design documents
+- `docs/design-plans/` -- Design documents (historical and current)
 
 ## Conventions
 
