@@ -8,7 +8,7 @@ Patterns for building server-driven web applications with HTMX and Alpine.js. La
 
 ## Contracts
 
-- **Exposes**: `htmx-alpine:htmx-alpine` skill with 7 reference docs + 1 framework variant
+- **Exposes**: `htmx-alpine:htmx-alpine` skill with 6 reference docs + 1 framework variant
 - **Guarantees**: Skill is standalone, no hooks. Reference docs are lazy-loaded via SKILL.md lookup tables. Core patterns are framework-agnostic.
 - **Expects**: User working with HTMX and/or Alpine.js in any server-side framework
 
