@@ -1,12 +1,12 @@
 {
   "name": "mise",
-  "version": "0.1.0",
-  "description": "mise toolchain manager guidance for consistent development environments",
+  "version": "1.0.0",
+  "description": "mise toolchain manager guidance with SessionStart hook for toolchain detection",
   "author": {
     "name": "Marcus Griep",
     "email": "marcus@griep.us"
   },
   "repository": "https://github.com/neoeinstein/claude-plugins",
   "license": "MIT",
-  "keywords": ["mise", "toolchain", "devtools", "environment"]
+  "keywords": ["mise", "toolchain", "devtools", "environment", "ci-cd"]
 }
