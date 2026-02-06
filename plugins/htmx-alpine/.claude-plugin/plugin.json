@@ -1,12 +1,12 @@
 {
   "name": "htmx-alpine",
-  "version": "0.1.0",
-  "description": "HTMX and Alpine.js patterns for server-driven web applications",
+  "version": "1.0.0",
+  "description": "HTMX and Alpine.js patterns for server-driven web applications with accessibility and framework-specific guidance",
   "author": {
     "name": "Marcus Griep",
     "email": "marcus@griep.us"
   },
   "repository": "https://github.com/neoeinstein/claude-plugins",
   "license": "MIT",
-  "keywords": ["htmx", "alpine", "frontend", "server-driven"]
+  "keywords": ["htmx", "alpine", "frontend", "server-driven", "accessibility"]
 }
