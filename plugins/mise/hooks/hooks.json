@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/detect-toolchain.sh\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
