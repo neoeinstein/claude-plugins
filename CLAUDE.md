@@ -28,8 +28,8 @@ Claude Code plugin marketplace. Hosts development-focused plugins distributed vi
 
 ### Plugin Versioning
 
-- `1.0.0` for production-ready plugins (currently: rust-best-practices)
-- `0.1.0` for stubs awaiting full design (currently: askama, htmx-alpine, mise)
+- `1.0.0` for production-ready plugins (currently: rust-best-practices, askama, htmx-alpine, mise)
+- `0.1.0` for stubs awaiting full design
 
 ### Skill Structure
 
