@@ -1,6 +1,6 @@
 # mise Plugin
 
-Last verified: 2026-02-05
+Last verified: 2026-02-06
 
 ## Purpose
 
@@ -15,7 +15,7 @@ Guidance for using mise as a toolchain manager. Covers `mise.toml` (repos you co
 ## Key Decisions
 
 - **mise.toml vs mise.local.toml**: Core distinction emphasized throughout. Team config is committed; personal config is gitignored.
-- **SessionStart hook is minimal**: Primes agent that mise is available, doesn't prescribe actions. Silent if config exists. Never writes to project directory.
+- **SessionStart hook primes agent context**: Outputs runtime-vs-library-deps distinction and points to mise skill. Three modes: team config (mise.toml), local config (mise.local.toml), no config. Never writes to project directory.
 - **Troubleshooting has STOP section**: Addresses the "remove mise from CI when rate limited" anti-pattern.
 
 ## Key Files
@@ -26,7 +26,7 @@ Guidance for using mise as a toolchain manager. Covers `mise.toml` (repos you co
 - `skills/mise/references/troubleshooting.md` — Command-not-found, rate limiting, STOP section
 - `skills/mise/references/ci-cd.md` — GitHub Actions, lockfiles, caching
 - `hooks/hooks.json` — SessionStart hook configuration
-- `hooks/detect-toolchain.sh` — Minimal toolchain detection script
+- `hooks/detect-toolchain.sh` — Agent priming: runtime vs library deps, skill reference
 
 ## Invariants
 
@@ -34,4 +34,4 @@ Guidance for using mise as a toolchain manager. Covers `mise.toml` (repos you co
 - SKILL.md lookup tables must cover all reference docs
 - Hook must be fail-open (always exit 0)
 - Hook must never modify the project directory
-- Hook must be silent when any mise config exists
+- Hook must always output agent context (distinguishes team/local/no config)
