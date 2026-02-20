@@ -19,9 +19,12 @@ PIDFILE="${PIDDIR}/claude-caffeinate-${SESSION_ID}.pid"
 
 start() {
     stop
-    /usr/bin/caffeinate -di >/dev/null 2>&1 &
-    disown $! 2>/dev/null
-    echo $! > "$PIDFILE" 2>/dev/null
+    # Subshell fully detaches caffeinate from the hook's process tree.
+    # Without this, the hook runner waits for all children to exit.
+    (
+        /usr/bin/caffeinate -di </dev/null >/dev/null 2>&1 &
+        echo $! > "$PIDFILE" 2>/dev/null
+    )
 }
 
 stop() {
