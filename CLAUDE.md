@@ -1,6 +1,6 @@
 # neoeinstein-plugins
 
-Last verified: 2026-02-06
+Last verified: 2026-02-20
 
 ## Purpose
 
@@ -28,8 +28,8 @@ Claude Code plugin marketplace. Hosts development-focused plugins distributed vi
 
 ### Plugin Versioning
 
-- `1.0.0` for production-ready plugins (currently: rust-best-practices, askama, htmx-alpine, mise)
-- `0.1.0` for stubs awaiting full design
+- `1.0.0`+ for production-ready plugins
+- `0.x.y` for stubs awaiting full design
 
 ### Skill Structure
 
@@ -46,10 +46,4 @@ Claude Code plugin marketplace. Hosts development-focused plugins distributed vi
 
 ## Current Plugins
 
-| Plugin | Version | Contents |
-|--------|---------|----------|
-| rust-best-practices | 1.0.0 | Skill + 15 reference docs + rustfmt hook |
-| askama | 1.0.0 | Skill + 5 reference docs |
-| htmx-alpine | 1.0.0 | Skill + 6 reference docs + 1 framework variant |
-| mise | 1.1.0 | Skill + 4 reference docs + SessionStart hook |
-| caffeinate | 1.0.0 | Hooks (UserPromptSubmit + Stop + SessionEnd) |
+See `.claude-plugin/marketplace.json` for the authoritative plugin list with versions and descriptions.
