@@ -19,7 +19,7 @@ PIDFILE="${PIDDIR}/claude-caffeinate-${SESSION_ID}.pid"
 
 start() {
     stop
-    /usr/bin/caffeinate -di &
+    /usr/bin/caffeinate -di >/dev/null 2>&1 &
     disown $! 2>/dev/null
     echo $! > "$PIDFILE" 2>/dev/null
 }
