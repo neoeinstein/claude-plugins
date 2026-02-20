@@ -13,7 +13,7 @@
   "plugins": [
     {
       "name": "rust-best-practices",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "description": "Idiomatic Rust development guidance with best practices skill and auto-formatting hook",
       "source": "./plugins/rust-best-practices",
       "category": "development",
