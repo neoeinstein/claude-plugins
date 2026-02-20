@@ -114,24 +114,24 @@ fn complex_init(/* many args */) { }
 
 | Situation | What to do |
 |-----------|------------|
-| Code you're actively building toward using | `#[expect(dead_code)]` — temporary, must be removed by end of task |
-| Code only referenced by tests | It IS dead code. Delete the code (and probably the tests). |
-| Test helper that exists for `#[cfg(test)]` modules | Use `#[cfg(test)]` on the helper itself, not a `dead_code` suppression |
-| Code that must exist for non-test builds but is only exercised in tests | `#[cfg_attr(not(test), expect(dead_code))]` |
-| End of a task/PR | **Zero** `expect(dead_code)` annotations should remain. Wire it up or delete it. |
+| Code you're actively building toward using | `#[expect(dead_code, reason = "...")]` — temporary mid-task marker |
+| Code only referenced by tests | It IS dead code. Delete the code. If tests only exercised that dead code, delete them too. If tests are valuable, refactor them to use live code paths instead. |
+| Test helper / infrastructure code | Move it behind `#[cfg(test)]` where it belongs, not a `dead_code` suppression |
+| Multi-phase work: code needed later but only tested so far | `#[cfg_attr(not(test), expect(dead_code, reason = "..."))]` — still a WIP marker, not permanent |
+| **End of a task/PR** | **Zero `dead_code` suppression annotations should remain.** Wire it up or delete it. This includes `cfg_attr` variants. |
 
 ```rust
-// GOOD: temporary marker during active development, with reason
+// GOOD mid-task: temporary marker during active development
 #[expect(dead_code, reason = "wiring up in the register_routes commit")]
 fn new_feature() { /* will be called from main handler next commit */ }
 
-// GOOD: test-only helper
+// GOOD mid-task: multi-phase work, tested but not yet called from production
+#[cfg_attr(not(test), expect(dead_code, reason = "phase 2 wires this into the API handler"))]
+pub(crate) fn short_code(&self) -> &str { /* ... */ }
+
+// GOOD always: test-only helper behind cfg(test)
 #[cfg(test)]
 fn make_test_fixture() -> Fixture { /* ... */ }
-
-// GOOD: exists in non-test builds, only exercised in tests
-#[cfg_attr(not(test), expect(dead_code, reason = "exposed for integration tests"))]
-pub(crate) fn short_code(&self) -> &str { /* ... */ }
 
 // BAD: permanent suppression hiding actually dead code
 #[allow(dead_code)]
@@ -140,15 +140,20 @@ fn unused_legacy_function() { }
 // BAD: "used in tests" is not a reason to keep dead production code
 #[allow(dead_code)]  // "conditionally dead — used in tests"
 fn only_called_in_test_module() { }
+
+// BAD at end of task: any dead_code suppression that survived to completion
+#[cfg_attr(not(test), expect(dead_code, reason = "exposed for integration tests"))]
+pub(crate) fn never_actually_wired_up(&self) -> &str { /* delete this */ }
 ```
 
 ### STOP — Anti-Rationalization
 
 | Rationalization | Reality |
 |-----------------|---------|
-| "Conditionally dead — used in tests" | If ONLY tests call it, it IS dead. Delete it or `#[cfg(test)]` the helper. |
+| "Conditionally dead — used in tests" | If ONLY tests call it, it IS dead. Delete it. If tests are valuable, refactor them to use live paths. If it's test infrastructure, move it behind `#[cfg(test)]`. |
 | "Field exists but not yet used in template" | Wire it up or remove it. Don't ship dead fields. |
 | "I'll use it later" | `expect(dead_code)` is acceptable MID-TASK only. Remove before completing the task. |
+| "It's fine, I used `cfg_attr` instead of `allow`" | `cfg_attr(not(test), expect(dead_code))` is a more precise WIP marker, not a permanent pass. Same end-of-task rule: wire it up or delete it. |
 | "It's just an `#[allow]`, not a big deal" | `#[allow]` rots silently. Always use `#[expect]` so the compiler cleans up after you. |
 | "The reason is obvious from context" | If it's obvious, it's easy to write. Reasons make suppressions reviewable and removable. |
 
