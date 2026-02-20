@@ -1,6 +1,6 @@
 {
   "name": "caffeinate",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Prevents macOS sleep and screen lock during Claude's active turn, re-enabling sleep when waiting for user input",
   "author": {
     "name": "Marcus Griep",
