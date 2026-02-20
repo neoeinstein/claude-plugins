@@ -18,6 +18,7 @@ Reference guide for writing idiomatic, safe, and maintainable Rust code. Load to
 | Using `bool` parameters, designing enums | `references/enum-design.md` |
 | Designing public APIs, builders, trait implementations | `references/api-design.md` |
 | Configuring Clippy, setting up lints | `references/clippy-config.md` |
+| Adding `#[allow]`/`#[expect]` annotations, dead code warnings | `references/clippy-config.md` |
 | Structuring code, applying design patterns | `references/patterns.md` |
 | Organizing modules, separating pure logic from I/O | `references/fcis.md` |
 | Unsure how to use a crate, need documentation | `references/finding-docs.md` |
@@ -75,6 +76,8 @@ Before writing code that matches these patterns, STOP and reconsider.
 | Use `bool` for a two-state concept | "An enum is overkill" | Create the enum. Bools are meaningless at call sites: `set_active(true)` vs `set_status(Status::Active)`. Load `references/enum-design.md`. |
 | Add a catch-all `_ =>` to a match on your own enum | "I don't want to update every match" | That's exactly why you should — exhaustive matching catches forgotten variants at compile time. |
 | Use `mem::transmute` | "I know the layout" | You probably don't. Use `from_ne_bytes`, `bytemuck`, or `zerocopy` instead. Load `references/unsafe.md`. |
+| Add `#[allow(dead_code)]` | "Conditionally dead — used in tests" / "Not used yet" | If only used in tests, the code IS dead — delete it (or the tests). Use `#[expect(dead_code)]` for interim work, never `#[allow]`. Load `references/clippy-config.md`. |
+| Leave `#[expect(dead_code)]` at end of task | "Field exists but not yet used" / "Will be wired up later" | Clean it up NOW. Either wire it up or remove it. `expect(dead_code)` is a WIP marker, not a permanent annotation. |
 
 ## Authoritative Resources
 
