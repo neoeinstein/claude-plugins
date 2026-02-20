@@ -19,12 +19,20 @@ PIDFILE="${PIDDIR}/claude-caffeinate-${SESSION_ID}.pid"
 
 start() {
     stop
-    # Subshell fully detaches caffeinate from the hook's process tree.
-    # Without this, the hook runner waits for all children to exit.
-    (
-        /usr/bin/caffeinate -di </dev/null >/dev/null 2>&1 &
-        echo $! > "$PIDFILE" 2>/dev/null
-    )
+    # Use fork+setsid to place caffeinate in a new session and process group,
+    # fully detaching it from the hook runner's process tree.
+    perl -MPOSIX=setsid -e '
+        defined(my $pid = fork) or exit 1;
+        if ($pid) {
+            open my $f, ">", $ARGV[0] and do { print $f $pid; close $f };
+            exit 0;
+        }
+        setsid;
+        open STDIN, "<", "/dev/null";
+        open STDOUT, ">", "/dev/null";
+        open STDERR, ">", "/dev/null";
+        exec "/usr/bin/caffeinate", "-di";
+    ' "$PIDFILE" 2>/dev/null
 }
 
 stop() {
