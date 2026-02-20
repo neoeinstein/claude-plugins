@@ -52,3 +52,4 @@ Claude Code plugin marketplace. Hosts development-focused plugins distributed vi
 | askama | 1.0.0 | Skill + 5 reference docs |
 | htmx-alpine | 1.0.0 | Skill + 6 reference docs + 1 framework variant |
 | mise | 1.1.0 | Skill + 4 reference docs + SessionStart hook |
+| caffeinate | 1.0.0 | Hooks (UserPromptSubmit + Stop + SessionEnd) |

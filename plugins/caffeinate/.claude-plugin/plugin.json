@@ -1,0 +1,12 @@
+{
+  "name": "caffeinate",
+  "version": "1.0.0",
+  "description": "Prevents macOS sleep and screen lock during Claude's active turn, re-enabling sleep when waiting for user input",
+  "author": {
+    "name": "Marcus Griep",
+    "email": "marcus@griep.us"
+  },
+  "repository": "https://github.com/neoeinstein/claude-plugins",
+  "license": "MIT",
+  "keywords": ["macos", "sleep", "caffeinate", "lock-screen", "hooks"]
+}

@@ -1,13 +1,13 @@
 {
   "name": "neoeinstein-plugins",
   "version": "1.0.0",
-  "description": "Claude Code plugins for Rust development, Askama templates, HTMX+Alpine patterns, and mise toolchain management",
+  "description": "Claude Code plugins for Rust development, Askama templates, HTMX+Alpine patterns, mise toolchain management, and macOS sleep prevention",
   "owner": {
     "name": "Marcus Griep",
     "email": "marcus@griep.us"
   },
   "metadata": {
-    "description": "Development plugins for Rust, Askama, HTMX+Alpine, and mise",
+    "description": "Development plugins for Rust, Askama, HTMX+Alpine, mise, and macOS utilities",
     "pluginRoot": "./plugins"
   },
   "plugins": [
@@ -50,6 +50,17 @@
       "description": "mise toolchain manager guidance with SessionStart hook for toolchain detection",
       "source": "./plugins/mise",
       "category": "development",
+      "author": {
+        "name": "Marcus Griep",
+        "email": "marcus@griep.us"
+      }
+    },
+    {
+      "name": "caffeinate",
+      "version": "1.0.0",
+      "description": "Prevents macOS sleep and screen lock during Claude's active turn, re-enabling sleep when waiting for user input",
+      "source": "./plugins/caffeinate",
+      "category": "productivity",
       "author": {
         "name": "Marcus Griep",
         "email": "marcus@griep.us"
