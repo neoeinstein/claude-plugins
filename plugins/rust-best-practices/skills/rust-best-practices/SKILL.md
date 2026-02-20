@@ -30,6 +30,7 @@ Reference guide for writing idiomatic, safe, and maintainable Rust code. Load to
 | Writing or reviewing unsafe code, FFI, MaybeUninit | `references/unsafe.md` |
 | `Send`/`Sync` bounds, thread safety, Arc/Mutex | `references/send-sync.md` |
 | Serde, JSON serialization, derive attributes | `references/serde.md` |
+| `dead_code` on `Deserialize` structs, DTO dead fields | `references/dead-code-in-serde-structs.md` |
 
 ## Error Message → Reference
 
@@ -78,6 +79,8 @@ Before writing code that matches these patterns, STOP and reconsider.
 | Use `mem::transmute` | "I know the layout" | You probably don't. Use `from_ne_bytes`, `bytemuck`, or `zerocopy` instead. Load `references/unsafe.md`. |
 | Add `#[allow(dead_code)]` | "Conditionally dead — used in tests" / "Not used yet" | If only used in tests, the code IS dead — delete it. Refactor valuable tests to use live paths, or move test infrastructure behind `#[cfg(test)]`. Use `#[expect(dead_code, reason = "...")]` for interim work only, never `#[allow]`. Load `references/clippy-config.md`. |
 | Leave `#[expect(dead_code)]` at end of task | "Field exists but not yet used" / "Will be wired up later" | Clean it up NOW. Either wire it up or remove it. `expect(dead_code)` is a WIP marker, not a permanent annotation. |
+| Prefix a Serde field with `_` to suppress `dead_code` | "It's just a naming convention" | **Never.** `_field` changes the expected JSON/SQL key. Delete the field or use `#[expect(dead_code, reason = "...")]` with a structural reason. Load `references/dead-code-in-serde-structs.md`. |
+| Keep unused fields on a `Deserialize` struct | "The field must match the schema" / "It documents the response" | Serde ignores unknown fields. Dead DTO fields aren't safety — they're coupling. Delete the field; comment the schema. Load `references/dead-code-in-serde-structs.md`. |
 
 ## Authoritative Resources
 

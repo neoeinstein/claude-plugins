@@ -156,6 +156,7 @@ pub(crate) fn never_actually_wired_up(&self) -> &str { /* delete this */ }
 | "It's fine, I used `cfg_attr` instead of `allow`" | `cfg_attr(not(test), expect(dead_code))` is a more precise WIP marker, not a permanent pass. Same end-of-task rule: wire it up or delete it. |
 | "It's just an `#[allow]`, not a big deal" | `#[allow]` rots silently. Always use `#[expect]` so the compiler cleans up after you. |
 | "The reason is obvious from context" | If it's obvious, it's easy to write. Reasons make suppressions reviewable and removable. |
+| "The field must match the JSON/SQL schema" | Serde ignores unknown fields. Dead DTO fields aren't safety — they're coupling. Delete the field; comment the schema. See `references/dead-code-in-serde-structs.md`. |
 
 ### Other Lint Suppression Patterns
 

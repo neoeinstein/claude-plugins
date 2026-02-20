@@ -282,6 +282,33 @@ struct Event {
 #[serde(flatten)]
 ```
 
+## Dead Fields and Underscore-Prefix Trap
+
+**Delete unused fields from `Deserialize` structs.** Serde ignores fields the struct doesn't declare — keeping unread fields creates coupling, not safety. If the source renames a column you never read, your code breaks for nothing.
+
+```rust
+// GOOD: only declare what you read
+/// SQL: SELECT id, username, password_hash FROM users WHERE username = ?
+#[derive(Deserialize)]
+struct UserRow {
+    id: String,
+    password_hash: String,
+}
+
+// BAD: dead weight coupling to unread columns
+#[derive(Deserialize)]
+struct UserRow {
+    id: String,
+    #[expect(dead_code, reason = "deserialized but not used")]
+    username: String,
+    password_hash: String,
+}
+```
+
+**Never prefix Serde fields with `_` to suppress `dead_code`.** Serde derives the key name from the identifier — `_field` expects `"_field"` in the JSON/SQL, not `"field"`. This silently breaks deserialization at runtime.
+
+The only legitimate `#[expect(dead_code)]` on DTO-adjacent structs is for **structural requirements** — macro-required fields or typed struct APIs. See `references/dead-code-in-serde-structs.md` for the full decision framework.
+
 ## Resources
 
 - Serde Documentation: https://serde.rs
