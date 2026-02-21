@@ -18,6 +18,7 @@ Reference guide for writing idiomatic, safe, and maintainable Rust code. Load to
 | Using `bool` parameters, designing enums | `references/enum-design.md` |
 | Designing public APIs, builders, trait implementations | `references/api-design.md` |
 | Configuring Clippy, setting up lints | `references/clippy-config.md` |
+| A lint fires and you're considering suppression | `references/clippy-config.md` — **fix first**, suppress only as last resort |
 | Adding `#[allow]`/`#[expect]` annotations, dead code warnings | `references/clippy-config.md` |
 | Structuring code, applying design patterns | `references/patterns.md` |
 | Organizing modules, separating pure logic from I/O | `references/fcis.md` |
@@ -77,6 +78,7 @@ Before writing code that matches these patterns, STOP and reconsider.
 | Use `bool` for a two-state concept | "An enum is overkill" | Create the enum. Bools are meaningless at call sites: `set_active(true)` vs `set_status(Status::Active)`. Load `references/enum-design.md`. |
 | Add a catch-all `_ =>` to a match on your own enum | "I don't want to update every match" | That's exactly why you should — exhaustive matching catches forgotten variants at compile time. |
 | Use `mem::transmute` | "I know the layout" | You probably don't. Use `from_ne_bytes`, `bytemuck`, or `zerocopy` instead. Load `references/unsafe.md`. |
+| Suppress a lint instead of fixing the code | "It's just a style lint" / "The code is more readable this way" | **Fix the code.** Lints exist to improve quality. If clippy says `collapsible_if`, collapse it. If it says `manual_let_else`, use `let ... else`. Suppression is only for structural constraints you can't change (framework signatures, verified false positives). Load `references/clippy-config.md`. |
 | Add `#[allow(dead_code)]` | "Conditionally dead — used in tests" / "Not used yet" | If only used in tests, the code IS dead — delete it. Refactor valuable tests to use live paths, or move test infrastructure behind `#[cfg(test)]`. Use `#[expect(dead_code, reason = "...")]` for interim work only, never `#[allow]`. Load `references/clippy-config.md`. |
 | Leave `#[expect(dead_code)]` at end of task | "Field exists but not yet used" / "Will be wired up later" | Clean it up NOW. Either wire it up or remove it. `expect(dead_code)` is a WIP marker, not a permanent annotation. |
 | Prefix a Serde field with `_` to suppress `dead_code` | "It's just a naming convention" | **Never.** `_field` changes the expected JSON/SQL key. Delete the field or use `#[expect(dead_code, reason = "...")]` with a structural reason. Load `references/dead-code-in-serde-structs.md`. |
