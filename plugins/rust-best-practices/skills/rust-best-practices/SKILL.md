@@ -32,6 +32,7 @@ Reference guide for writing idiomatic, safe, and maintainable Rust code. Load to
 | `Send`/`Sync` bounds, thread safety, Arc/Mutex | `references/send-sync.md` |
 | Serde, JSON serialization, derive attributes | `references/serde.md` |
 | `dead_code` on `Deserialize` structs, DTO dead fields | `references/dead-code-in-serde-structs.md` |
+| Using aliri_braid, seeing `new()` conflicts or `Infallible` errors | `references/type-safety.md` |
 
 ## Error Message → Reference
 
@@ -47,6 +48,7 @@ Reference guide for writing idiomatic, safe, and maintainable Rust code. Load to
 | "`MutexGuard` held across await" | `references/async.md` |
 | "higher-ranked lifetime error" | `references/lifetimes.md` (HRTBs) |
 | "cannot infer type" with serde | `references/serde.md` |
+| "duplicate definitions with name `new`" near a braid type | `references/type-safety.md` (aliri_braid gotchas) |
 
 ## Core Principles
 

@@ -27,6 +27,37 @@ This includes:
 - Functions called directly
 - Constants and statics referenced
 
+### Scope Is Uniform — Including Macros and Includes
+
+A common misconception is that Askama macros (`{% macro %}`, `{% call %}`), imported macro files (`{% import %}`), or included templates (`{% include %}`) have their own Rust scope. They don't. Askama expands everything into a single generated `impl` block in the Template struct's module. All Rust name resolution — in the template body, in macros, in includes — happens at the `#[derive(Template)]` site.
+
+This means:
+- A macro calling `{{ value.css_class() }}` needs the trait imported where the **calling** Template struct lives, not in some hypothetical "macro scope"
+- If two different Template structs in different modules both use the same macro, **both** modules need the trait import independently
+- There is no way to attach Rust `use` statements to a template file — imports always go in the `.rs` module
+
+```rust
+// macros.html
+{% macro status_badge(status) %}
+    <span class="{{ status.css_class() }}">{{ status }}</span>
+{% endmacro %}
+
+// event_list.html (uses the macro)
+{% import "macros.html" as macros %}
+{% call macros::status_badge(event.status) %}
+```
+
+```rust
+// The trait must be imported HERE — not "in" the macro file
+use crate::models::EventStatusExt;  // provides .css_class()
+
+#[derive(Template)]
+#[template(path = "event_list.html")]
+pub struct EventListTemplate {
+    pub events: Vec<Event>,
+}
+```
+
 ## STOP and Reconsider
 
 **Before converting a type to String to fix a scope error, STOP.**

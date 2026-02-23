@@ -99,6 +99,53 @@ Note: Alpine auto-initializes new `x-data` elements in swapped content as of Alp
 </div>
 ```
 
+### Global Reusable Confirm Dialog
+
+For applications with many destructive actions, a single global dialog is more maintainable than per-item inline confirmations. The pattern coordinates trigger buttons and a shared `<dialog>` through Alpine custom events and HTMX's conditional trigger:
+
+```html
+<!-- Global dialog (once per page, in base layout) -->
+<div x-data="{ title: '', action: '', danger: false, triggerEl: null }"
+     @request-confirm.window="
+         triggerEl = $event.detail.el;
+         title = triggerEl.dataset.confirmTitle || 'Confirm';
+         action = triggerEl.dataset.confirmAction || triggerEl.dataset.confirm;
+         danger = triggerEl.classList.contains('btn-danger') || triggerEl.hasAttribute('hx-delete');
+         $refs.dialog.showModal()">
+    <dialog x-ref="dialog">
+        <p x-text="title"></p>
+        <p x-text="action"></p>
+        <button @click="$refs.dialog.close()">Cancel</button>
+        <button :class="danger && 'btn-danger'"
+                @click="triggerEl.dispatchEvent(new Event('confirmed')); $refs.dialog.close()">
+            Confirm
+        </button>
+    </dialog>
+</div>
+
+<!-- Any button that needs confirmation -->
+<button hx-delete="/item/123"
+        hx-target="closest .item"
+        hx-trigger="confirmed"
+        data-confirm="This will permanently delete the item."
+        data-confirm-title="Delete Item"
+        @click="$dispatch('request-confirm', { el: $event.currentTarget })">
+    Delete
+</button>
+```
+
+How it works:
+1. Button click dispatches `request-confirm` custom event (bubbles to window)
+2. Global dialog listener reads `data-confirm-*` attributes from the triggering element
+3. Dialog auto-detects danger styling from `.btn-danger` class or `hx-delete` attribute
+4. On confirm, dialog dispatches a `confirmed` event back to the original button
+5. `hx-trigger="confirmed"` on the button means HTMX only fires after dialog confirmation
+
+Key points:
+- Do not use `hx-confirm` — this Alpine pattern replaces it entirely, providing richer customization (custom titles, danger detection, consistent styling)
+- New destructive actions only need the `data-confirm` attributes and `hx-trigger="confirmed"` — no per-button Alpine state
+- The dialog lives in the base layout template, so it's available on every page without duplication
+
 ### Optimistic Updates
 
 Show immediate feedback while waiting for server:

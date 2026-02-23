@@ -13,7 +13,7 @@
   "plugins": [
     {
       "name": "rust-best-practices",
-      "version": "1.2.0",
+      "version": "1.2.2",
       "description": "Idiomatic Rust development guidance with best practices skill and auto-formatting hook",
       "source": "./plugins/rust-best-practices",
       "category": "development",
@@ -24,7 +24,7 @@
     },
     {
       "name": "askama",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "description": "Askama Rust template engine guidance with anti-rationalization patterns for scope errors and Jinja2 migration",
       "source": "./plugins/askama",
       "category": "development",
@@ -35,7 +35,7 @@
     },
     {
       "name": "htmx-alpine",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "description": "HTMX and Alpine.js patterns for server-driven web applications with accessibility and framework-specific guidance",
       "source": "./plugins/htmx-alpine",
       "category": "development",

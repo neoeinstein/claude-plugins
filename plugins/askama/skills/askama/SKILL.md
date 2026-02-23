@@ -52,7 +52,8 @@ Before writing code that matches these patterns, STOP and reconsider.
 | Apply `safe` filter to user-controlled data | "It's already validated server-side" / "We trust this field" | Never trust, always escape. If you need HTML, render it through a controlled template, not `{{ raw_html \| safe }}`. Load `references/filters.md`. |
 | Skip using `{% match %}` for an enum | "If/else is simpler" | Match is exhaustive — the compiler catches forgotten variants. If/else silently ignores new cases. |
 | Pre-format everything in Rust before passing to template | "Templates should just display" | Templates can call methods. Keep logic in types, let templates use it. |
-| Add `#[allow(dead_code)]` to Template fields | "The template uses it but Rust doesn't see it" | This is expected. Use `#[expect(dead_code)]` instead so you're prompted to remove it if the field becomes truly unused. |
+| Add imports inside a macro file or think macros have their own scope | "The macro needs its own imports" / "It works in the other template" | Askama macros share the scope of the **calling** Template struct's module. Import traits there. Load `references/scope-debugging.md`. |
+| Suppress `dead_code` on Template struct fields | "The template uses it but Rust doesn't see it" | **Wrong — Rust does see it.** Askama's derive macro generates code that reads every field the template uses, including through macros. If `dead_code` fires, the field is genuinely unused. Delete it. |
 
 ## Authoritative Resources
 

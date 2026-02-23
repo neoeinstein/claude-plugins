@@ -18,6 +18,7 @@ Build server-driven web applications where the server returns HTML and the clien
 | Using hx-get, hx-post, hx-target, hx-swap | `references/htmx-requests.md` |
 | Managing UI state with x-data, x-model | `references/alpine-state.md` |
 | Coordinating HTMX and Alpine together | `references/integration.md` |
+| Building a reusable confirm dialog for destructive actions | `references/integration.md` |
 | Adding loading spinners, error handling | `references/feedback-patterns.md` |
 | Using SSE or WebSocket extensions | `references/realtime.md` |
 | Concerned about focus, ARIA, screen readers | `references/accessibility.md` |

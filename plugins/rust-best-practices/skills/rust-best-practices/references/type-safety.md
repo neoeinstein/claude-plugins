@@ -6,6 +6,7 @@
 - Seeing `String` or other primitives where semantic types would be clearer
 - Wanting validation at construction time
 - Reducing "primitive obsession" anti-pattern
+- A value requires context (timezone, locale, unit) to be correctly consumed — embed it in the type
 
 ## Quick Reference
 
@@ -90,6 +91,47 @@ let name = DatabaseName::from_static("mydb");
 connect(&name);
 ```
 
+### aliri_braid Gotchas
+
+**`new(String)` collision:** The `braid` macro auto-generates `fn new(s: String) -> Self` on every braid type. If you try to define your own zero-argument `new()` constructor (e.g., for generating a random value), you'll get a "duplicate definitions with name `new`" error. Use a distinct name like `generate()` instead:
+
+```rust
+#[braid(serde)]
+pub struct EventId;
+
+impl EventId {
+    // BAD: collides with macro-generated new(String)
+    // pub fn new() -> Self { ... }
+
+    // GOOD: distinct name avoids collision
+    pub fn generate() -> Self {
+        Self::new(ksuid::Ksuid::generate().to_string())
+    }
+}
+```
+
+**Infallible `FromStr` when no validator:** If the braid type has no `validator` attribute, the macro generates an infallible `FromStr` implementation (`Err = Infallible`). Since the parse can never fail, use Rust's irrefutable let pattern — `.unwrap()` compiles but is noisy and misleading:
+
+```rust
+// GOOD: irrefutable — compiler confirms this can't fail
+let Ok(token) = raw_string.parse::<SessionToken>();
+
+// BAD: unwrap on an infallible Result — noisy and misleading
+let token = raw_string.parse::<SessionToken>().unwrap();
+```
+
+If the braid type does have a `validator`, `FromStr` is fallible and you should use `?` or `match` normally.
+
+**Owned vs Ref pairs:** Braid generates both `TypeName` (owned, `String`-backed) and `TypeNameRef` (borrowed, `str`-backed). Use `&TypeNameRef` for function parameters to accept both owned and borrowed forms without cloning:
+
+```rust
+fn lookup(id: &UserIdRef) -> Option<User> { /* ... */ }
+
+let owned = UserId::generate();
+lookup(&owned);           // &UserId derefs to &UserIdRef
+lookup(UserIdRef::from_str("abc123"));  // Direct borrow
+```
+
 ### Deriving Traits with derive_more
 
 ```rust
@@ -135,6 +177,40 @@ let port = Port::try_from(8080)?;
 // No need to re-validate `port` anywhere it's used
 ```
 
+### Context-Carrying Newtypes
+
+When a value requires semantic context to be correctly consumed — a timezone for a datetime, a currency unit for an amount, a display layer for a template — embed that context in the type rather than passing it separately at every call site.
+
+Use method **absence** to enforce categorical distinctions at compile time. Not implementing a method is intentional API design:
+
+```rust
+// ❌ BAD - context passed separately; easy to forget, easy to pass the wrong one
+fn display_time(dt: DateTime<Utc>, timezone: Option<&str>) { }
+
+// ✅ GOOD - type carries required context; misuse is structurally impossible
+pub struct LocatedTime(DateTime<chrono_tz::Tz>);  // anchored to a physical location
+pub struct ViewerTime(DateTime<Utc>);             // relative to the viewer's browser
+
+impl LocatedTime {
+    pub fn iana_tz(&self) -> &'static str { self.0.timezone().name() }
+}
+
+// ViewerTime intentionally has no iana_tz() — misuse won't compile:
+fn render_located(t: &LocatedTime) {
+    let tz = t.iana_tz(); // ✅ compiles
+}
+fn render_viewer(t: &ViewerTime) {
+    // t.iana_tz();  // ❌ compile error: method not found
+}
+```
+
+**When to use this pattern:**
+- Values that must always be interpreted in a specific context (timezone, locale, unit system)
+- Display/template layer types that carry all required rendering context
+- Any case where "which category is this value?" matters as much as "what is the value?"
+
+This is "Make Illegal States Unrepresentable" applied to interpretation context rather than data state.
+
 ## Common Mistakes
 
 | Mistake | Fix |
@@ -144,6 +220,7 @@ let port = Port::try_from(8080)?;
 | `u64` or `i64` for identifiers | Use `String` - IDs aren't for math |
 | `f64` for money | Use `doubloon::Money` or `rust_decimal::Decimal` |
 | Passing multiple strings that could be confused | Use newtypes to catch misuse at compile time |
+| Passing required context (timezone, locale) as a separate parameter | Embed context in the type; use method absence to prevent category errors |
 
 ## Anti-Pattern: Primitive Obsession
 
