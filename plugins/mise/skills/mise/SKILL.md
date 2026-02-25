@@ -1,13 +1,13 @@
 ---
 name: mise
-description: Use when setting up development toolchains with mise, managing tool versions, or configuring project environments - covers both mise.toml for repos you control and mise.local.toml for repos you contribute to
+description: Use when setting up development toolchains with mise, managing tool versions, configuring project environments, or defining build/test/deploy tasks - covers both mise.toml for repos you control and mise.local.toml for repos you contribute to
 ---
 
 # mise Toolchain Management
 
 ## Overview
 
-mise manages development tool versions and environment configuration. Use it to ensure consistent toolchains across team members and CI.
+mise manages development tool versions, environment configuration, and project tasks. Use it to ensure consistent toolchains across team members and CI, and to define build/test/deploy workflows alongside your toolchain.
 
 **Core principle:** Two modes — `mise.toml` for repos you control (committed), `mise.local.toml` for repos you contribute to (gitignored).
 
@@ -15,8 +15,12 @@ mise manages development tool versions and environment configuration. Use it to 
 
 | If you're... | Load |
 |--------------|------|
+| Adopting mise in an existing project | Use `mise:onboard-project` skill instead |
 | Setting up mise.toml, understanding precedence | `references/configuration.md` |
 | Defining tasks, running builds, watch mode | `references/tasks.md` |
+| Declaring task-specific tool requirements | `references/tasks.md` |
+| Organizing tasks across packages in a monorepo | `references/monorepo-tasks.md` |
+| Decomposing a flat taskfile into per-component definitions | `references/monorepo-tasks.md` |
 | Seeing "command not found", activation issues | `references/troubleshooting.md` |
 | Setting up GitHub Actions, lockfiles | `references/ci-cd.md` |
 
@@ -52,6 +56,8 @@ Before writing code that matches these patterns, STOP and reconsider.
 | Commit `mise.local.toml` | "Team should have these tools too" | That's what `mise.toml` is for. Local files are personal. |
 | Use `.bash_profile` for activation | "It's where I put PATH" | Activation only works in `.bashrc`/`.zshrc`. Load `references/troubleshooting.md`. |
 | Pin exact patch versions everywhere | "Maximum reproducibility" | Use `mise.lock` instead. Pins in config make updates tedious. |
+| Add a tool to project `[tools]` that only one task needs | "It's easier" / "Everyone might use it" | Put it in `tasks.<name>.tools`. Contributors who never run that task skip the install. Load `references/tasks.md`. |
+| Put all tasks in the root mise.toml for a multi-package project | "It's simpler" / "One file to check" | Each package should own its tasks in its own `mise.toml`. Root orchestrates. Load `references/monorepo-tasks.md`. |
 
 ## Common Tool Configurations
 
@@ -95,5 +101,7 @@ python = "3.12"
 - [mise Documentation](https://mise.jdx.dev/)
 - [Configuration Reference](https://mise.jdx.dev/configuration.html)
 - [Task Runner](https://mise.jdx.dev/tasks/)
+- [Task Configuration](https://mise.jdx.dev/tasks/task-configuration.html)
+- [Monorepo Tasks](https://mise.jdx.dev/tasks/monorepo.html) (experimental)
 - [CI/CD Integration](https://mise.jdx.dev/continuous-integration.html)
 
