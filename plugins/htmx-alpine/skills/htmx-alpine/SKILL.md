@@ -60,6 +60,7 @@ Before writing code that matches these patterns, STOP and reconsider.
 | Build a wizard with Alpine-only state | "Steps are just UI" | Multi-step flows need server persistence. Use HTMX for each step, Alpine for in-step UI. |
 | Ignore loading indicators | "It's fast enough" | It's not always fast. Add `hx-indicator`. Load `references/feedback-patterns.md`. |
 | Use `innerHTML` in JavaScript | "Just this once" | Use HTMX `hx-swap`. If you need it, Alpine `x-html` (with caution). |
+| Send JSON over WebSocket and build DOM client-side | "It's more flexible" / "We need structured data" | Server renders HTML fragments. Send them directly via htmx-ws with OOB swaps. Load `references/realtime.md`. |
 
 ## Common Mistakes
 

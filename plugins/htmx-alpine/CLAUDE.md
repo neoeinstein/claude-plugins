@@ -1,6 +1,6 @@
 # htmx-alpine Plugin
 
-Last verified: 2026-02-05
+Last verified: 2026-02-25
 
 ## Purpose
 

@@ -94,12 +94,118 @@ Client sends (from form):
 {"message": "Hello", "HEADERS": {...}}
 ```
 
-Server sends HTML:
+Server **always** sends HTML fragments — never JSON:
 ```html
 <div id="messages" hx-swap-oob="beforeend">
     <p>User: Hello</p>
 </div>
 ```
+
+### WebSocket Responses Must Be HTML Fragments
+
+This is the most common mistake with htmx-ws: sending JSON and post-processing it client-side. **Don't.** The server renders HTML. The server sends HTML. HTMX swaps it. No client-side template logic.
+
+| Approach | Correct? | Why |
+|----------|----------|-----|
+| Server sends `<div id="status" hx-swap-oob="innerHTML">Online</div>` | Yes | Server renders, HTMX swaps |
+| Server sends `{"status": "online"}` + client builds DOM | **No** | Duplicates rendering on client, breaks source-of-truth |
+| Server sends `{"type": "refresh", "section": "status"}` + client fetches | **No** | Extra round-trip, JSON signal is unnecessary indirection |
+
+If you find yourself writing JavaScript that receives JSON from a WebSocket and constructs HTML, you've left the HTMX model. Refactor: have the server render the fragment and send it directly.
+
+### Multi-Fragment WebSocket Messages
+
+htmx-ws swaps every incoming element by `id` (implicit `hx-swap-oob="true"`). A single WebSocket message can contain multiple top-level elements — each is found and swapped independently:
+
+```html
+<!-- Server sends this as one WebSocket message -->
+<div id="participant-list" hx-swap-oob="innerHTML">
+    <ul><li>Alice</li><li>Bob</li></ul>
+</div>
+<div id="participant-count" hx-swap-oob="innerHTML">
+    <span>2 participants</span>
+</div>
+<div id="status-badge" hx-swap-oob="innerHTML">
+    <span class="badge badge-active">Active</span>
+</div>
+```
+
+### `<template>` Wrappers for Spec-Invalid Standalone Elements
+
+Some HTML elements can't exist as top-level roots without a parent context — `<tr>`, `<td>`, `<li>`, `<option>`, and SVG elements. The browser's HTML parser will mangle or discard them. Wrap these in `<template>` to preserve their structure:
+
+```html
+<!-- Each <template> provides its own parsing context -->
+<template>
+    <tr id="row-42" hx-swap-oob="outerHTML">
+        <td>Alice</td><td>Confirmed</td>
+    </tr>
+</template>
+<template>
+    <li id="attendee-alice" hx-swap-oob="outerHTML">
+        Alice (confirmed)
+    </li>
+</template>
+<!-- Elements that CAN standalone don't need wrapping -->
+<div id="participant-count" hx-swap-oob="innerHTML">
+    <span>2 participants</span>
+</div>
+```
+
+**Use one `<template>` per fragment, not one `<template>` around everything.** Mixing elements with incompatible parsing contexts (e.g., a `<tr>` and a `<div>`) inside a single `<template>` causes the same parser-mangling you're trying to avoid. Each `<template>` establishes its own inert parsing context for its children.
+
+### OOB Section Refresh Pattern
+
+Instead of sending granular JSON signals that tell the client *what changed*, send re-rendered HTML sections that show the *current state*. Each section is a self-contained OOB swap:
+
+```html
+<!-- Re-rendered section: the server re-renders the whole section -->
+<div id="registration-summary" hx-swap-oob="innerHTML">
+    <dl>
+        <dt>Registered</dt><dd>14</dd>
+        <dt>Waitlisted</dt><dd>3</dd>
+    </dl>
+</div>
+<!-- Another section, independently swapped -->
+<div id="attendee-table-wrapper" hx-swap-oob="innerHTML">
+    <table>
+        <tr><td>Alice</td><td>Confirmed</td></tr>
+        <tr><td>Bob</td><td>Waitlisted</td></tr>
+    </table>
+</div>
+```
+
+This pattern naturally replaces JSON signal approaches like `{"action": "increment_count", "section": "registration"}`. The server already knows the current state — just render it.
+
+### Idempotent WebSocket Updates
+
+WebSocket messages may arrive out of order or be replayed on reconnection. Use element-level versioning to prevent stale updates from overwriting newer state:
+
+```html
+<!-- Server includes a version or timestamp on each fragment -->
+<div id="section-a" hx-swap-oob="innerHTML" data-version="42">
+    Current content at version 42
+</div>
+```
+
+```html
+<!-- Client-side guard: skip swaps where the existing version is newer -->
+<div hx-ext="ws" ws-connect="/ws"
+     @htmx:oob-before-swap.window="
+         let existing = $event.detail.target;
+         let incoming = $event.detail.fragment;
+         if (existing?.dataset.version && incoming?.dataset?.version &&
+             Number(existing.dataset.version) >= Number(incoming.dataset.version)) {
+             $event.detail.shouldSwap = false;
+         }
+     ">
+</div>
+```
+
+When to use idempotent versioning:
+- **Always** for sections that update independently at different rates
+- **Always** when reconnection replays recent messages
+- **Optional** for append-only feeds (use message IDs to skip duplicates instead)
 
 ### Polling Alternative
 
@@ -147,10 +253,14 @@ SSE auto-reconnects. For WebSocket:
 | Wrong event name | Content not swapped | Match sse-swap to server event name |
 | No reconnection logic (WS) | Stays disconnected | Add htmx:wsClose handler |
 | Using WS for one-way | Unnecessary complexity | Use SSE for server-to-client only |
+| Sending JSON over WS | Client needs JS to build DOM | Server must send HTML fragments |
+| One `<template>` around everything | Parser mangles mixed elements | One `<template>` per fragment |
+| Bare `<tr>`/`<li>` as top-level | Element silently discarded | Wrap in `<template>` |
 
 ## Resources
 
 - [HTMX SSE Extension](https://htmx.org/extensions/sse/)
 - [HTMX WebSocket Extension](https://htmx.org/extensions/ws/)
+- [hx-swap-oob Reference](https://htmx.org/attributes/hx-swap-oob/) — OOB swap mechanics, `<template>` wrapping rules
 - [MDN: Server-Sent Events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events)
 - [MDN: WebSocket API](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API)
