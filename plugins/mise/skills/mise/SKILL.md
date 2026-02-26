@@ -58,6 +58,9 @@ Before writing code that matches these patterns, STOP and reconsider.
 | Pin exact patch versions everywhere | "Maximum reproducibility" | Use `mise.lock` instead. Pins in config make updates tedious. |
 | Add a tool to project `[tools]` that only one task needs | "It's easier" / "Everyone might use it" | Put it in `tasks.<name>.tools`. Contributors who never run that task skip the install. Load `references/tasks.md`. |
 | Put all tasks in the root mise.toml for a multi-package project | "It's simpler" / "One file to check" | Each package should own its tasks in its own `mise.toml`. Root orchestrates. Load `references/monorepo-tasks.md`. |
+| Define `task_templates` in an intermediate group config | "Templates should live near the packages that use them" | Templates ONLY resolve from root `mise.toml`. Move all templates to root. Load `references/monorepo-tasks.md`. |
+| Use TOML array syntax in `usage` field (`choices=["a","b"]`) | "It's a TOML file" | `usage` content is KDL, not TOML. Use `choices "a" "b"` inside a block. Load `references/tasks.md`. |
+| Pass `env` inside `{ task = "...", env = {...} }` delegation | "Dependencies support it" | Delegation objects only support `task`/`tasks` keys. Use inline args or task-level `env`. Load `references/tasks.md`. |
 
 ## Common Tool Configurations
 

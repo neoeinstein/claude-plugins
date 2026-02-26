@@ -161,6 +161,41 @@ run = [
 
 Tasks in the same array element run in parallel; array elements run sequentially.
 
+**Delegation objects only support `task` and `tasks` keys.** You cannot pass `env`, `args`, or other fields inside `{ task = "..." }` objects. To pass arguments, append them directly to the task string:
+
+```toml
+# ✅ CORRECT — inline args in task string
+[tasks."deploy:preview"]
+run = [
+    { task = "//services/api:deploy preview" },
+    { task = "//services/worker:deploy preview" },
+]
+
+# ✅ CORRECT — parallel with inline args
+[tasks."deploy:preview"]
+run = [
+    { tasks = ["//services/api:deploy preview", "//services/worker:deploy preview"] },
+]
+
+# ❌ WRONG — env field not supported in delegation objects
+[tasks."deploy:preview"]
+run = [
+    { task = "//services/api:deploy", env = { DEPLOY_ENV = "preview" } },
+]
+```
+
+**Task-level `env` IS inherited by delegated sub-tasks** (but NOT by `depends` tasks). If you need environment variables available to all delegated tasks, set `env` on the parent task definition:
+
+```toml
+[tasks."deploy:preview"]
+env = { DEPLOY_ENV = "preview" }
+run = [
+    { task = "//services/api:deploy" },
+    { task = "//services/worker:deploy" },
+]
+# Both delegated tasks see DEPLOY_ENV="preview"
+```
+
 ### Multi-Command Task
 
 ```toml
@@ -204,6 +239,37 @@ confirm = "Deploy to {{arg(name='env')}}?"
 ```bash
 mise run deploy staging
 mise run deploy production  # Shows confirmation prompt
+```
+
+**CRITICAL: `usage` fields are parsed as KDL, not TOML.** Even though the `usage` value is written as a TOML string, its _content_ is KDL syntax (from the [usage](https://usage.jdx.dev/) library). This is the most common source of parse errors when defining task arguments.
+
+**KDL syntax rules for `usage` fields:**
+- `<arg>` = required argument, `[arg]` = optional argument
+- `choices` uses KDL block syntax with space-separated values, NOT arrays
+- Arguments are accessed in `run` scripts as `$usage_<argname>` environment variables
+
+```toml
+# ✅ CORRECT — KDL block syntax
+usage = '''
+arg "<env>" {
+    choices "staging" "production"
+}
+'''
+
+# ❌ WRONG — TOML array syntax inside KDL
+usage = 'arg "<env>" choices=["staging", "production"]'
+
+# ❌ WRONG — Missing block braces
+usage = 'arg "<env>" choices "staging" "production"'
+```
+
+**In file-based tasks**, `#MISE` directives use TOML syntax but `#USAGE` directives use KDL syntax:
+
+```bash
+#!/bin/bash
+#MISE description="Deploy to environment"          # TOML syntax
+#MISE tools={wrangler="latest", node="lts"}        # TOML syntax
+#USAGE arg "<env>" { choices "staging" "production" }  # KDL syntax
 ```
 
 ### Watch Mode
@@ -286,6 +352,9 @@ mise run test -- --nocapture
 | Arguments not passed | Args ignored | Use `--` before arguments |
 | Tool in project `[tools]` only used by one task | Unnecessary install for all devs | Move to `tasks.<name>.tools` |
 | Missing `sources` on incremental task | Always re-runs | Add source globs for skip-when-unchanged |
+| `usage` field with TOML array syntax | KDL parse error (`Failed to parse KDL document`) | Use KDL block syntax: `arg "<env>" { choices "val1" "val2" }` |
+| `env` in delegation object `{ task, env }` | Environment not passed to sub-task | Append args inline: `{ task = "//pkg:task arg1" }` or use task-level `env` |
+| Using `choices=["a", "b"]` in usage | KDL parse error | Use `choices "a" "b"` (space-separated, no brackets) |
 
 ## Resources
 

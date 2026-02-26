@@ -11,6 +11,7 @@
 
 | Issue | Quick Fix |
 |-------|-----------|
+| KDL parse error in `usage` | `usage` is KDL, not TOML — use `choices "a" "b"` in blocks |
 | Command not found | Run `mise install` then `mise x -- command` |
 | Wrong version | Check `mise ls`, run `mise use <tool>@<version>` |
 | Activation not working | Check shell rc file, not profile |
@@ -52,6 +53,32 @@ MISE_DEBUG=1 mise install
 ```
 
 ## Common Issues
+
+### KDL Parse Error in `usage` Fields
+
+**Symptom:** `Failed to parse KDL document` or similar parse error when running a task with `usage` spec.
+
+**Cause:** `usage` fields are parsed as **KDL syntax** (from the [usage](https://usage.jdx.dev/) library), not TOML — even though they live inside a TOML file. This is the #1 source of task definition errors.
+
+**Fix:** Use KDL block syntax for `choices` and other usage directives:
+
+```toml
+# ❌ WRONG — TOML array syntax
+usage = 'arg "<env>" choices=["staging", "production"]'
+
+# ✅ CORRECT — KDL block syntax
+usage = '''
+arg "<env>" {
+    choices "staging" "production"
+}
+'''
+```
+
+**Quick KDL reference for usage fields:**
+- `<arg>` = required, `[arg]` = optional
+- `choices` must be inside a block `{ choices "a" "b" }` (space-separated, no brackets)
+- Arguments become `$usage_<argname>` environment variables in `run` scripts
+- `#MISE` directives in file-based tasks use TOML syntax; `#USAGE` directives use KDL syntax
 
 ### "command not found" After Install
 

@@ -193,6 +193,40 @@ extends = "rust:test"
 
 Templates keep package `mise.toml` files minimal while ensuring consistent patterns.
 
+**CRITICAL: `task_templates` only resolve from the monorepo root config.** Templates defined in intermediate group configs (e.g., `services/mise.toml`) are NOT visible to leaf configs. All templates must be defined in the root `mise.toml`.
+
+```toml
+# ❌ WRONG — templates in intermediate config are invisible to leaves
+# services/mise.toml
+[task_templates."svc:deploy"]
+run = "flyctl deploy"
+
+# services/api/mise.toml
+[tasks.deploy]
+extends = "svc:deploy"  # ERROR: template not found
+```
+
+```toml
+# ✅ CORRECT — all templates in root, even domain-specific ones
+# mise.toml (root)
+[task_templates."svc:deploy"]
+run = "flyctl deploy"
+tools = { "aqua:flyctl" = "latest" }
+
+# services/api/mise.toml
+[tasks.deploy]
+extends = "svc:deploy"  # Works — resolves from root
+```
+
+**Config layering scope varies by section:**
+
+| Section | Cascades from root? | Can define in intermediate configs? |
+|---------|--------------------|------------------------------------|
+| `[tools]` | Yes — child inherits and can override | Yes |
+| `[env]` | Yes — child inherits and can override | Yes |
+| `[task_templates]` | Yes — leaves can extend root templates | **No** — only root templates are visible |
+| `[tasks]` | No — each config defines its own tasks | Yes |
+
 ### Cross-Package Dependencies
 
 Package tasks can depend on tasks from other packages:
@@ -263,6 +297,8 @@ Benefits:
 | No `config_roots` defined | Only root tasks visible | Explicitly list package directories |
 | Using `mise run task` from root | Ambiguous if multiple packages define it | Use `mise //path:task` absolute syntax |
 | All tasks in root `mise.toml` | Root grows unmanageable | Move package tasks to package `mise.toml` |
+| `task_templates` in intermediate config | "template not found" when leaf extends it | Move ALL templates to root `mise.toml` — only root templates are visible |
+| `{ task = "...", env = {...} }` in `run` array | env silently ignored | Use inline args: `{ task = "//pkg:task arg1" }` or task-level `env` |
 
 ## Resources
 
