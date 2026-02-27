@@ -1,13 +1,13 @@
 {
   "name": "neoeinstein-plugins",
   "version": "1.0.0",
-  "description": "Claude Code plugins for Rust development, Askama templates, HTMX+Alpine patterns, mise toolchain management, and macOS sleep prevention",
+  "description": "Claude Code plugins for Rust development, Askama templates, HTMX+Alpine patterns, mise toolchain management, agent pipelines, and macOS sleep prevention",
   "owner": {
     "name": "Marcus Griep",
     "email": "marcus@griep.us"
   },
   "metadata": {
-    "description": "Development plugins for Rust, Askama, HTMX+Alpine, mise, and macOS utilities",
+    "description": "Development plugins for Rust, Askama, HTMX+Alpine, mise, agent pipelines, and macOS utilities",
     "pluginRoot": "./plugins"
   },
   "plugins": [
@@ -61,6 +61,17 @@
       "description": "Prevents macOS sleep and screen lock during Claude's active turn, re-enabling sleep when waiting for user input",
       "source": "./plugins/caffeinate",
       "category": "productivity",
+      "author": {
+        "name": "Marcus Griep",
+        "email": "marcus@griep.us"
+      }
+    },
+    {
+      "name": "agent-team-pipeline",
+      "version": "0.1.0",
+      "description": "Structured multi-agent development pipeline with phased investigation, planning, implementation, and two-stage review (spec compliance + pluggable evaluators)",
+      "source": "./plugins/agent-team-pipeline",
+      "category": "workflow",
       "author": {
         "name": "Marcus Griep",
         "email": "marcus@griep.us"
