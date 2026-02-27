@@ -85,6 +85,8 @@ Before writing code that matches these patterns, STOP and reconsider.
 | Leave `#[expect(dead_code)]` at end of task | "Field exists but not yet used" / "Will be wired up later" | Clean it up NOW. Either wire it up or remove it. `expect(dead_code)` is a WIP marker, not a permanent annotation. |
 | Prefix a Serde field with `_` to suppress `dead_code` | "It's just a naming convention" | **Never.** `_field` changes the expected JSON/SQL key. Delete the field or use `#[expect(dead_code, reason = "...")]` with a structural reason. Load `references/dead-code-in-serde-structs.md`. |
 | Keep unused fields on a `Deserialize` struct | "The field must match the schema" / "It documents the response" | Serde ignores unknown fields. Dead DTO fields aren't safety — they're coupling. Delete the field; comment the schema. Load `references/dead-code-in-serde-structs.md`. |
+| Assume `Option<T>` handles missing JSON keys | "`Option` means optional" / "null and missing are the same" | **They are not.** `null` → `None` is serde_json. Missing key → `None` is an implicit derive feature. Always use `#[serde(default)]` on `Option<T>` fields where the key may be absent. Load `references/serde.md`. |
+| Skip `skip_serializing_if` on `Option<T>` | "null in the output is fine" | It inflates payloads and breaks PATCH semantics. Pair `#[serde(default)]` with `#[serde(skip_serializing_if = "Option::is_none")]`. For three-state (missing/null/present), use `optional_field::Field<T>`. Load `references/serde.md`. |
 
 ## Authoritative Resources
 
