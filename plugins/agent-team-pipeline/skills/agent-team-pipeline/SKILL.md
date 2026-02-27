@@ -64,9 +64,13 @@ After each agent completes, synthesize — don't relay raw output:
 ## Pipeline Anatomy
 
 ### Phase 1: Investigate
-- **Agent**: `agent-team-pipeline:investigator` (haiku)
+- **Agents**: Choose based on what the investigation needs:
+  - `agent-team-pipeline:codebase-investigator` — local codebase patterns and construction sites
+  - `agent-team-pipeline:internet-researcher` — external docs, API references, library behavior
+  - `agent-team-pipeline:combined-researcher` — both local codebase + external docs in one dispatch
+  - `agent-team-pipeline:remote-code-researcher` — clone and read external library source code
 - **Input**: Search goal + constraints
-- **Output**: Structured findings catalog with file:line citations
+- **Output**: Structured findings catalog with file:line citations and/or sourced external findings
 - **Gate**: Findings are complete (not just "enough" examples)
 - **Human checkpoint**: Present synthesized findings to user. User confirms completeness or directs additional investigation.
 
@@ -200,7 +204,7 @@ digraph heavy {
 ```
 
 **What changes:**
-- **Exhaustive investigation** — multiple investigator agents with different search strategies, results merged
+- **Exhaustive investigation** — multiple research agents (codebase, internet, remote-code) with different strategies, results merged
 - **Task dependency graph** — planner outputs parallel-safe task groups (see `references/parallel-pipelines.md`)
 - **Parallel implementation** — independent tasks dispatched simultaneously in separate worktrees
 - **All evaluators** — built-in + custom, all at `zero-issues` gate
@@ -300,7 +304,7 @@ These agents declare `isolation: worktree` in their frontmatter.
 
 **Read-only agent (no isolation):**
 ```
-Task tool — subagent_type: "agent-team-pipeline:investigator"
+Task tool — subagent_type: "agent-team-pipeline:codebase-investigator"
   prompt: "<investigation goal and constraints>"
   isolation: none (omit the field)
 ```
@@ -384,7 +388,7 @@ Evaluators are the pipeline's extensibility point. See `references/evaluator-con
 
 | Role | Model | Rationale |
 |---|---|---|
-| Investigator | haiku | Mechanical search — well-defined with detailed prompt |
+| Research agents | haiku | Mechanical search — codebase, internet, combined, remote-code |
 | Planner | opus (standard/heavy), sonnet (light) | Judgment scales with plan complexity |
 | Plan validator | opus | Must reason about cascading effects and verify assumptions |
 | Implementor | haiku | Follows explicit plan — mechanical execution |

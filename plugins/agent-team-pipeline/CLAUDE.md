@@ -10,7 +10,7 @@ Inspired by OBRA Superpowers (two-stage review, fresh agents per task, skeptical
 
 ## Contracts
 
-- **Exposes**: `agent-team-pipeline:orchestrate-pipeline` skill (orchestrator), 7 agent definitions for pipeline roles, SessionStart hook for evaluator config detection
+- **Exposes**: `agent-team-pipeline:orchestrate-pipeline` skill (orchestrator), 10 agent definitions for pipeline roles, SessionStart hook for evaluator config detection
 - **Guarantees**: Each phase is independently gated with human checkpoints. Evaluators are pluggable via markdown config. All mutating agents run in worktree isolation. All findings cite file:line references.
 - **Expects**: Git repository. No hard dependencies on external plugins — all external plugin references are conditional ("if installed").
 
@@ -20,7 +20,7 @@ Inspired by OBRA Superpowers (two-stage review, fresh agents per task, skeptical
 |-------|---------|
 | `orchestrate-pipeline` | Full 6-phase pipeline coordination (the only skill in this plugin) |
 
-Agent definitions in `agents/` provide role-specific guidance for each pipeline phase (investigator, planner, plan-validator, implementor, spec-reviewer, evaluator, fixer).
+Agent definitions in `agents/` provide role-specific guidance for each pipeline phase (codebase-investigator, internet-researcher, combined-researcher, remote-code-researcher, planner, plan-validator, implementor, spec-reviewer, evaluator, fixer).
 
 ## Dependencies
 
@@ -43,5 +43,5 @@ Projects configure evaluators via `.claude/pipeline-evaluators/` — a directory
 
 - `skills/agent-team-pipeline/SKILL.md` — Main orchestrator skill
 - `skills/agent-team-pipeline/references/` — Evaluator config format, parallel pipelines, lessons
-- `agents/` — 7 pipeline role agent definitions
+- `agents/` — 10 pipeline role agent definitions
 - `hooks/` — SessionStart config detection
