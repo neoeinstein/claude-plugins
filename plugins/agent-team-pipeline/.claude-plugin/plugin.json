@@ -1,6 +1,6 @@
 {
   "name": "agent-team-pipeline",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Structured multi-agent development pipeline with phased investigation, planning, implementation, and two-stage review (spec compliance + pluggable evaluators)",
   "author": {
     "name": "Marcus Griep",
