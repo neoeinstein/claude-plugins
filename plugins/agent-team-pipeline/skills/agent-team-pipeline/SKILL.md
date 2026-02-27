@@ -22,12 +22,26 @@ digraph pipeline {
 ```
 
 **Core principles:**
-- **Right-size the pipeline** — assess intensity (light/standard/heavy) before starting
+- **Right-size the pipeline** — assess intensity (light/standard/heavy/review) before starting
 - Each phase is independently gated
 - Human approves investigation, plan, and implementation before proceeding
 - Spec compliance before code quality (OBRA pattern)
 - Evaluators are pluggable via project config
 - Language-agnostic — works for any language/framework
+
+## When This Skill Is Invoked
+
+Start by understanding what the user needs, then set up the pipeline:
+
+1. **Ask what they want to accomplish** — "What change are you looking to make?" Get the goal, not just the task. If they've already described it, confirm your understanding.
+2. **Detect the environment** — infer language, build/test commands, and base branch from the project's CLAUDE.md, Cargo.toml/package.json/etc., or ask if unclear.
+3. **Check for evaluator config** — look for `.claude/pipeline-evaluators/`. If it exists, note the language and any custom evaluators. If not, mention that built-in evaluators will run without language-specific hints.
+4. **Discover best-practice skills** — dispatch a haiku agent with the project's language, domain, and goal. The agent scans the available skills list and returns a shortlist of skill names relevant to this pipeline. Do NOT read skill content yourself — the planner and evaluators will each load relevant skills in their own context. Report the shortlist: "These skills look relevant to this pipeline: [list]. The planner and evaluators will use them."
+5. **Assess intensity** — based on the goal, propose light/standard/heavy/review (see Pipeline Intensity below). Explain what that means for this specific task.
+6. **Present your plan** — summarize: "Here's what I'm proposing: a [intensity] pipeline for [goal]. That means [phases that will run]. Best-practice skills: [list]. Sound good?"
+7. **Wait for confirmation** — the user may add/remove skills from the list, override intensity, skip phases, or refine the goal.
+
+Only after the user confirms do you proceed to the Orchestrator Protocol below.
 
 ## Quick Reference — What to Load
 

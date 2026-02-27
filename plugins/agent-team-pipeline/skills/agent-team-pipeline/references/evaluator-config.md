@@ -40,14 +40,14 @@ packs:
 ```
 
 **Fields:**
-- `language` — resolves language-specific hints in built-in evaluators
+- `language` — used for skill discovery (see Best-Practice Skill Discovery below)
 - `base_branch` — target branch for merge operations (default: main)
 - `packs` — list of paths to shared evaluator pack directories (see Evaluator Packs below)
 - Built-in evaluators are listed by name with override values under headings
 
 ## Custom Evaluator Format
 
-Each custom evaluator is a standalone `.md` file. The prompt is the document body.
+Each custom evaluator is a standalone `.md` file. The prompt is the document body. Evaluators should focus on their specific concern (PII, security, domain invariants) and stay language-agnostic — language-specific best practices come from skills, not evaluator definitions.
 
 ```markdown
 ---
@@ -68,17 +68,6 @@ For each issue:
 - What PII is exposed
 - Severity: Critical / Important / Minor
 - Fix: specific remediation
-
-## Language Hints
-
-### Rust
-Check Display impls, tracing::info!/warn!/error! macro arguments,
-format!() calls, and Askama template variable usage for PII leaks.
-Email types should use .redacted() for logging, never .as_str() or Display.
-
-### TypeScript
-Check console.log/warn/error arguments, template literal interpolation,
-JSON.stringify of user objects, and error message construction.
 ```
 
 ### Frontmatter Fields
@@ -93,17 +82,39 @@ JSON.stringify of user objects, and error message construction.
 
 The document body is the evaluator prompt — it is passed directly to the evaluator agent as its review instructions.
 
-### Language Hints Section
+## Best-Practice Skill Discovery
 
-If the document contains a `## Language Hints` section with language-specific subsections (`### Rust`, `### TypeScript`, etc.), the orchestrator appends the matching subsection to the prompt based on the pipeline's `language` setting.
+The pipeline auto-discovers installed skills that provide best practices relevant to the project. No special conventions are required from skill authors — relevance is judged from skill names and descriptions.
+
+### How discovery works
+
+1. During onboarding, the orchestrator dispatches a **haiku agent** with the project's language, domain, and goal
+2. The agent scans the available skills list (names and descriptions) and returns a ranked shortlist of relevant skills
+3. The orchestrator presents the shortlist to the user, who can add or remove entries
+4. The confirmed skill names are passed to downstream agents — **the orchestrator never reads skill content itself**
+
+### Where skills are routed
+
+Each downstream agent loads relevant skills in its own context using the Skill tool:
+
+- **Planner (Phase 2)** — loads relevant skills so plans already reflect idioms and patterns. This is the primary integration point.
+- **Evaluators (Phase 6)** — loads relevant skills as review context. Evaluators catch deviations the plan missed. This is the feedback loop.
+- **Implementors and fixers do NOT receive skill context** — they follow the plan and fix specific findings. The pipeline's structure is the enforcement mechanism.
+
+### Why evaluators stay language-agnostic
+
+Evaluators define *what to check* (PII exposure, security patterns, domain invariants). Skills define *how to check it in a given language or domain*. Keeping these separate means:
+- A PII evaluator works for any language without modification
+- Adding a new language means installing a skill, not editing every evaluator
+- Evaluator packs stay portable across teams with different tech stacks
 
 ## How Evaluators Are Dispatched
 
 The orchestrator reads `.claude/pipeline-evaluators/` and dispatches evaluators in Phase 6:
 
-1. **Built-in evaluators** use the `agent-team-pipeline:evaluator` agent with pre-defined prompts. The pipeline config's `language` setting selects the appropriate built-in language hints.
+1. **Built-in evaluators** use the `agent-team-pipeline:evaluator` agent with pre-defined prompts. Best-practice skill context is appended if matching skills are installed.
 
-2. **Custom evaluators** use the `agent-team-pipeline:evaluator` agent with the `.md` file's body as the evaluation prompt. Language hints are appended if the pipeline language matches a subsection.
+2. **Custom evaluators** use the `agent-team-pipeline:evaluator` agent with the `.md` file's body as the evaluation prompt.
 
 3. **Gate modes**:
    - `zero-issues` — any findings block the pipeline. The orchestrator must dispatch a fixer and re-run.
@@ -115,8 +126,10 @@ The orchestrator reads `.claude/pipeline-evaluators/` and dispatches evaluators 
 
 If no `.claude/pipeline-evaluators/` directory exists, the pipeline runs with:
 - `code-quality`: enabled, zero-issues gate
-- `type-safety`: enabled, zero-issues gate (no language hints)
+- `type-safety`: enabled, zero-issues gate
 - `security`: enabled, zero-issues gate
+
+Best-practice skills are still discovered and used even without a config directory.
 
 ## Evaluator Packs
 
@@ -150,4 +163,4 @@ No registry or package manager — packs evolve by editing markdown files.
 
 ## Evaluator Template
 
-Use the pii-privacy example above as a starting template for new evaluators.
+Use the pii-privacy example above as a starting template for new evaluators. Keep evaluators focused on a single concern and language-agnostic — let skills handle language specifics.
