@@ -174,6 +174,26 @@ investigate → plan → validate-plan → implement (parallel) → spec-complia
 
 **Examples:** cross-cutting refactor (error patterns across 5 crates), security audit remediation, architecture migration, multi-worker feature rollout.
 
+#### Review Pipeline
+
+For reviewing existing changes (a PR, a branch diff, a worktree) without running the full development pipeline. Enters directly at spec-compliance + evaluators.
+
+```
+spec-compliance → evaluators
+      (5)            (6)
+                  🧑
+              human gate
+```
+
+**What changes:**
+- **Skip Phases 1–4** — the code already exists; no investigation, planning, or implementation
+- **Input**: SHA range (`BASE_SHA...HEAD_SHA`), PR number, or branch name. The orchestrator resolves to a diff.
+- **Plan substitute**: PR description, commit messages, or a user-supplied review spec serves as the "plan" for the spec-reviewer
+- **One human gate** — after evaluators, before any fix dispatch
+- **Mode**: `advisory` (report only, no fixer dispatch) or `blocking` (dispatches fixer on zero-issues failures, re-runs that evaluator)
+
+**Examples:** PR review, post-merge audit, reviewing a teammate's worktree branch.
+
 #### Intensity Override
 
 The user can always override:

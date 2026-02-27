@@ -20,6 +20,9 @@ Projects customize the pipeline's review phase by placing evaluator definitions 
 ---
 language: rust
 base_branch: main
+packs:
+  - ~/.claude/evaluator-packs/redis-pack
+  - ~/.claude/evaluator-packs/aws-documentdb-pack
 ---
 
 # Pipeline Configuration
@@ -39,6 +42,7 @@ base_branch: main
 **Fields:**
 - `language` — resolves language-specific hints in built-in evaluators
 - `base_branch` — target branch for merge operations (default: main)
+- `packs` — list of paths to shared evaluator pack directories (see Evaluator Packs below)
 - Built-in evaluators are listed by name with override values under headings
 
 ## Custom Evaluator Format
@@ -113,6 +117,36 @@ If no `.claude/pipeline-evaluators/` directory exists, the pipeline runs with:
 - `code-quality`: enabled, zero-issues gate
 - `type-safety`: enabled, zero-issues gate (no language hints)
 - `security`: enabled, zero-issues gate
+
+## Evaluator Packs
+
+Packs are shared directories of evaluator `.md` files — same format as project evaluators. They allow domain knowledge (Redis gotchas, DocumentDB vs MongoDB differences, framework patterns) to be reused across projects.
+
+### Pack Structure
+
+A pack is a directory of `.md` evaluator files:
+```
+~/.claude/evaluator-packs/redis-pack/
+  connection-pooling.md
+  key-expiry-patterns.md
+  hot-key-detection.md
+```
+
+### How Packs Are Loaded
+
+1. The orchestrator reads `packs` from `config.md` frontmatter
+2. Each path is resolved and its `.md` files are loaded as evaluators
+3. Pack evaluators merge with local evaluators — **local wins on name collision**
+4. All evaluators (local + pack) are dispatched in parallel in Phase 6
+
+### Where Packs Live
+
+Packs are just directories on the filesystem. Common locations:
+- `~/.claude/evaluator-packs/` — user-level, shared across all projects
+- A shared team repo checked out locally
+- A monorepo's `shared/evaluator-packs/` directory
+
+No registry or package manager — packs evolve by editing markdown files.
 
 ## Evaluator Template
 
