@@ -317,7 +317,7 @@ Evaluators are the pipeline's extensibility point. See `references/evaluator-con
 | Run evaluators sequentially | They're independent | Dispatch all evaluators simultaneously |
 | Mark "advisory" findings as blocking | Advisory evaluators report but don't block | Only `zero-issues` gate blocks |
 | Do the work yourself | You're the orchestrator | Dispatch agents for all work |
-| Override agent isolation frontmatter | Direct mutation risks the working tree | Worktree isolation is in agent frontmatter for a reason |
+| Dispatch a mutating agent without worktree isolation | Direct mutation risks the working tree | Implementor and fixer agents must always run isolated |
 | Relay raw agent output to user | Users need synthesis, not data dumps | Distill findings into concise summaries |
 | Skip the dependency graph | Flat task lists miss ordering constraints | Planner must output task dependencies |
 | Run full pipeline on a trivial change | Wastes tokens — 6 phases for a typo fix | Assess intensity first; use light pipeline |
