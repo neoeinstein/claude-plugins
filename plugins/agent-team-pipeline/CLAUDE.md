@@ -25,14 +25,14 @@ Agent definitions in `agents/` provide role-specific guidance for each pipeline 
 ## Dependencies
 
 - **Optional**: `ed3d-extending-claude` — pipeline can dispatch project-claude-librarian after completion if installed
-- **Boundary**: Language-agnostic core. No hard dependencies on external plugins. Language-specific guidance goes in evaluator `language_hints` configuration.
+- **Boundary**: Language-agnostic core. No hard dependencies on external plugins. Language-specific guidance comes from auto-discovered best-practice skills, not evaluator definitions.
 
 ## Project Customization
 
 Projects configure evaluators via `.claude/pipeline-evaluators/` — a directory of markdown files:
 - Each custom evaluator is a `.md` file with frontmatter (name, model, gate) and prompt body
-- `config.md` controls pipeline settings (language, base branch, built-in overrides)
-- Language hints go in `## Language Hints` sections with per-language subsections
+- `config.md` controls pipeline settings (language, base branch, built-in overrides, evaluator packs)
+- Evaluators stay language-agnostic — best-practice skills provide language-specific context
 - Follows the same frontmatter+body pattern as agent definitions
 
 ## Hooks
