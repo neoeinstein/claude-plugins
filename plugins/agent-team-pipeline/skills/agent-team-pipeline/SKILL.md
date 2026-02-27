@@ -10,11 +10,15 @@ description: Use when coordinating multi-agent development pipelines with phased
 
 Structured 6-phase pipeline for multi-agent development work. Each phase has a dedicated agent type, clear deliverables, gate checks, and **human checkpoints** that block forward progress.
 
-```
-investigate → plan → validate-plan → implement → spec-compliance → evaluators
-    (1)        (2)        (3)           (4)           (5)            (6)
-         🧑            🧑           🧑                         🧑
-     human gate    human gate   human gate               human gate
+```dot
+digraph pipeline {
+  rankdir=LR
+  investigate -> plan -> validate_plan -> implement -> spec_compliance -> evaluators
+  investigate -> human_gate_1 [style=dashed]
+  plan -> human_gate_2 [style=dashed]
+  validate_plan -> human_gate_3 [style=dashed]
+  evaluators -> human_gate_4 [style=dashed]
+}
 ```
 
 **Core principles:**
@@ -123,11 +127,12 @@ Consider these factors:
 
 For small, well-understood changes where the orchestrator already grasps the scope.
 
-```
-plan → implement → spec-compliance
- (2)      (4)          (5)
-       🧑
-   human gate
+```dot
+digraph light {
+  rankdir=LR
+  plan -> human_gate [style=dashed]
+  plan -> implement -> spec_compliance
+}
 ```
 
 **What changes:**
@@ -143,10 +148,15 @@ plan → implement → spec-compliance
 
 The default. Full 6-phase pipeline for tasks requiring investigation and judgment.
 
-```
-investigate → plan → validate-plan → implement → spec-compliance → evaluators
-    (1)        (2)        (3)           (4)           (5)            (6)
-         🧑            🧑           🧑                         🧑
+```dot
+digraph standard {
+  rankdir=LR
+  investigate -> plan -> validate_plan -> implement -> spec_compliance -> evaluators
+  investigate -> human_gate_1 [style=dashed]
+  plan -> human_gate_2 [style=dashed]
+  validate_plan -> human_gate_3 [style=dashed]
+  evaluators -> human_gate_4 [style=dashed]
+}
 ```
 
 **What changes:** Nothing — this is the full pipeline as documented above.
@@ -157,10 +167,22 @@ investigate → plan → validate-plan → implement → spec-compliance → eva
 
 For large cross-cutting changes that need exhaustive investigation and parallel execution.
 
-```
-investigate → plan → validate-plan → implement (parallel) → spec-compliance → evaluators
-    (1)        (2)        (3)           (4a,4b,4c...)           (5)            (6)
-         🧑            🧑           🧑                                    🧑
+```dot
+digraph heavy {
+  rankdir=LR
+  investigate -> plan -> validate_plan
+  validate_plan -> implement_a [label="parallel"]
+  validate_plan -> implement_b [label="parallel"]
+  validate_plan -> implement_c [label="parallel"]
+  implement_a -> spec_compliance
+  implement_b -> spec_compliance
+  implement_c -> spec_compliance
+  spec_compliance -> evaluators
+  investigate -> human_gate_1 [style=dashed]
+  plan -> human_gate_2 [style=dashed]
+  validate_plan -> human_gate_3 [style=dashed]
+  evaluators -> human_gate_4 [style=dashed]
+}
 ```
 
 **What changes:**
@@ -178,11 +200,12 @@ investigate → plan → validate-plan → implement (parallel) → spec-complia
 
 For reviewing existing changes (a PR, a branch diff, a worktree) without running the full development pipeline. Enters directly at spec-compliance + evaluators.
 
-```
-spec-compliance → evaluators
-      (5)            (6)
-                  🧑
-              human gate
+```dot
+digraph review {
+  rankdir=LR
+  spec_compliance -> evaluators
+  evaluators -> human_gate [style=dashed]
+}
 ```
 
 **What changes:**
