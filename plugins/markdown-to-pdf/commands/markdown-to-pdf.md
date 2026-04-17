@@ -24,6 +24,8 @@ Once the target file is resolved:
 ${CLAUDE_PLUGIN_ROOT}/scripts/markdown-to-pdf <resolved-path>
 ```
 
-If the script exits non-zero, run `${CLAUDE_PLUGIN_ROOT}/scripts/markdown-to-pdf --check` and report what's missing.
+**Request unsandboxed access when invoking this script.** The script spawns `xelatex`, `pandoc`, and optional diagram renderers, which need write access to temp dirs and the output path, and may read system-installed fonts via `fc-list`. These operations typically fail under the default Bash sandbox.
+
+If the script exits non-zero, run `${CLAUDE_PLUGIN_ROOT}/scripts/markdown-to-pdf --check` (also unsandboxed) and report what's missing. Do **not** attempt to run any install commands it prints — those require admin privileges and must be executed by the user directly.
 
 Report the output path on success.

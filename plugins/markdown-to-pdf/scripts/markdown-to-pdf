@@ -12,7 +12,9 @@ set -eu
 #
 # Prerequisites (macOS):
 #   brew install pandoc
-#   brew install --cask mactex-no-gui   # provides xelatex
+#   curl -sL "https://tinytex.yihui.org/install-bin-unix.sh" | sh   # provides xelatex (auto-installs LaTeX packages on first use)
+#   tlmgr install $TLMGR_PACKAGES        # see TLMGR_PACKAGES below for the full list
+#   brew install --cask font-dejavu      # DejaVu Serif / Sans — body + heading fonts
 #   brew install fontconfig              # optional, enables font auto-detection
 #
 # Optional diagram renderers (for code block diagrams):
@@ -25,6 +27,11 @@ set -eu
 #   PragmataPro Mono Liga → JetBrains Mono → Fira Code → Hack → Menlo (built-in)
 #
 # Colors: Subtle navy heading hierarchy
+
+# ── TinyTeX package list ─────────────────────────────────────────────────────
+# TinyTeX installs scheme-infraonly; every \usepackage in the LaTeX header
+# below, plus pandoc's default-template packages, must be listed here.
+readonly TLMGR_PACKAGES="collection-fontsrecommended colortbl etoolbox footnotebackref fvextra mdframed needspace pagecolor sectsty setspace sourcecodepro titling tools xcolor zref"
 
 # ── Font detection ───────────────────────────────────────────────────────────
 
@@ -60,8 +67,22 @@ check_prereqs() {
   if command -v xelatex &>/dev/null; then
     print "  xelatex  $(xelatex --version 2>&1 | head -1)"
   else
-    print -u2 "  xelatex  NOT FOUND — brew install --cask mactex-no-gui"
+    print -u2 "  xelatex  NOT FOUND — install TinyTeX, then required LaTeX packages:"
+    print -u2 "             1) curl -sL \"https://tinytex.yihui.org/install-bin-unix.sh\" | sh"
+    print -u2 "             2) tlmgr install $TLMGR_PACKAGES"
     ok=0
+  fi
+
+  print "\nRequired fonts:"
+  if command -v fc-list &>/dev/null; then
+    if fc-list | grep -qi "DejaVu Serif"; then
+      print "  DejaVu   available"
+    else
+      print -u2 "  DejaVu   NOT FOUND — brew install --cask font-dejavu"
+      ok=0
+    fi
+  else
+    print "  DejaVu   cannot verify (fc-list not installed) — if XeLaTeX errors on \"DejaVu Serif\", run: brew install --cask font-dejavu"
   fi
 
   print "\nFont detection:"
@@ -94,6 +115,8 @@ check_prereqs() {
     print "\nAll required prerequisites satisfied."
   else
     print -u2 "\nMissing required prerequisites — see above."
+    print -u2 "These installs require admin privileges and must be run by the user"
+    print -u2 "directly. Ask the user to run the commands shown, then re-run --check."
   fi
 
   return $(( 1 - ok ))
@@ -122,7 +145,7 @@ if ! command -v pandoc &>/dev/null; then
 fi
 
 if ! command -v xelatex &>/dev/null; then
-  print -u2 "Error: xelatex not found — brew install --cask mactex-no-gui"
+  print -u2 "Error: xelatex not found — curl -sL \"https://tinytex.yihui.org/install-bin-unix.sh\" | sh"
   print -u2 "       Run '${0:t} --check' for full diagnostic"
   exit 1
 fi

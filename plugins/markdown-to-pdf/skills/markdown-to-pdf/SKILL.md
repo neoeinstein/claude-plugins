@@ -15,6 +15,8 @@ Converts Markdown files to polished PDFs using pandoc + XeLaTeX. Produces navy-c
 ${CLAUDE_PLUGIN_ROOT}/scripts/markdown-to-pdf <input.md> [output.pdf]
 ```
 
+**Invoke unsandboxed.** The script spawns `xelatex`, `pandoc`, and optional diagram renderers, reads system fonts via `fc-list`, and writes temp + output files — operations that typically fail under the default Bash sandbox. Request unsandboxed access when calling it.
+
 If `output.pdf` is omitted, the PDF is written alongside the source file with the same name.
 
 ```zsh

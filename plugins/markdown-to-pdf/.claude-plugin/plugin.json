@@ -1,6 +1,6 @@
 {
   "name": "markdown-to-pdf",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Convert Markdown files to styled PDFs using pandoc and XeLaTeX — navy heading hierarchy, styled blockquotes, and diagram rendering via code blocks",
   "author": {
     "name": "Marcus Griep",
