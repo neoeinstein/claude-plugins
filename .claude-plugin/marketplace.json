@@ -68,7 +68,7 @@
     },
     {
       "name": "markdown-to-pdf",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "Convert Markdown files to styled PDFs — navy heading hierarchy, blockquote styling, smart table widths, and optional diagram rendering",
       "source": "./plugins/markdown-to-pdf",
       "category": "productivity",
