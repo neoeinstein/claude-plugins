@@ -13,8 +13,6 @@
   "plugins": [
     {
       "name": "rust-best-practices",
-      "version": "1.3.0",
-      "description": "Idiomatic Rust development guidance with best practices skill and auto-formatting hook",
       "source": "./plugins/rust-best-practices",
       "category": "development",
       "author": {
@@ -24,8 +22,6 @@
     },
     {
       "name": "askama",
-      "version": "1.0.1",
-      "description": "Askama Rust template engine guidance with anti-rationalization patterns for scope errors and Jinja2 migration",
       "source": "./plugins/askama",
       "category": "development",
       "author": {
@@ -35,8 +31,6 @@
     },
     {
       "name": "htmx-alpine",
-      "version": "1.1.0",
-      "description": "HTMX and Alpine.js patterns for server-driven web applications with accessibility and framework-specific guidance",
       "source": "./plugins/htmx-alpine",
       "category": "development",
       "author": {
@@ -46,8 +40,6 @@
     },
     {
       "name": "mise",
-      "version": "1.3.0",
-      "description": "mise toolchain manager guidance with task runner, monorepo patterns, project onboarding, and SessionStart hook for toolchain detection",
       "source": "./plugins/mise",
       "category": "development",
       "author": {
@@ -57,8 +49,6 @@
     },
     {
       "name": "caffeinate",
-      "version": "1.0.1",
-      "description": "Prevents macOS sleep and screen lock during Claude's active turn, re-enabling sleep when waiting for user input",
       "source": "./plugins/caffeinate",
       "category": "productivity",
       "author": {
@@ -68,8 +58,6 @@
     },
     {
       "name": "markdown-to-pdf",
-      "version": "0.1.2",
-      "description": "Convert Markdown files to styled PDFs — navy heading hierarchy, blockquote styling, smart table widths, and optional diagram rendering",
       "source": "./plugins/markdown-to-pdf",
       "category": "productivity",
       "author": {
@@ -79,8 +67,6 @@
     },
     {
       "name": "agent-team-pipeline",
-      "version": "0.3.0",
-      "description": "Structured multi-agent development pipeline with phased investigation, planning, implementation, and two-stage review (spec compliance + pluggable evaluators)",
       "source": "./plugins/agent-team-pipeline",
       "category": "workflow",
       "author": {
