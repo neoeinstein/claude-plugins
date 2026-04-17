@@ -1,0 +1,331 @@
+#!/usr/bin/env zsh
+set -eu
+
+# markdown-to-pdf — Convert markdown files to styled PDFs
+#
+# Usage:
+#   ./scripts/markdown-to-pdf <input.md> [output.pdf]
+#   ./scripts/markdown-to-pdf --check
+#
+# If output is omitted, generates <input>.pdf alongside the source.
+# Run --check to verify all prerequisites without converting a file.
+#
+# Prerequisites (macOS):
+#   brew install pandoc
+#   brew install --cask mactex-no-gui   # provides xelatex
+#   brew install fontconfig              # optional, enables font auto-detection
+#
+# Optional diagram renderers (for code block diagrams):
+#   brew install plantuml                # plantuml diagrams
+#   brew install graphviz                # dot/graphviz diagrams
+#   npm install -g @mermaid-js/mermaid-cli  # mermaid diagrams (mmdc)
+#   brew install d2                      # d2 diagrams
+#
+# Fonts: auto-detected from installed fonts; preference order:
+#   PragmataPro Mono Liga → JetBrains Mono → Fira Code → Hack → Menlo (built-in)
+#
+# Colors: Subtle navy heading hierarchy
+
+# ── Font detection ───────────────────────────────────────────────────────────
+
+detect_monofont() {
+  [[ -n "${MONOFONT:-}" ]] && return
+
+  local -a preferred=("PragmataPro Mono Liga" "JetBrains Mono" "Fira Code" "Hack")
+  MONOFONT="Menlo"  # always available on macOS
+  if command -v fc-list &>/dev/null; then
+    local font
+    for font in "${preferred[@]}"; do
+      if fc-list | grep -qi "$font"; then
+        MONOFONT="$font"
+        return
+      fi
+    done
+  fi
+}
+
+# ── Prerequisite check ───────────────────────────────────────────────────────
+
+check_prereqs() {
+  local ok=1
+
+  print "Required tools:"
+  if command -v pandoc &>/dev/null; then
+    print "  pandoc   $(pandoc --version | head -1)"
+  else
+    print -u2 "  pandoc   NOT FOUND — brew install pandoc"
+    ok=0
+  fi
+
+  if command -v xelatex &>/dev/null; then
+    print "  xelatex  $(xelatex --version 2>&1 | head -1)"
+  else
+    print -u2 "  xelatex  NOT FOUND — brew install --cask mactex-no-gui"
+    ok=0
+  fi
+
+  print "\nFont detection:"
+  if command -v fc-list &>/dev/null; then
+    print "  fc-list  available"
+  else
+    print "  fc-list  not found (optional) — brew install fontconfig — fallback: Menlo"
+  fi
+  detect_monofont
+  print "  monofont selected: $MONOFONT"
+
+  print "\nOptional diagram renderers:"
+  local -a renderers=(
+    "plantuml" "brew install plantuml"
+    "dot"      "brew install graphviz"
+    "mmdc"     "npm install -g @mermaid-js/mermaid-cli"
+    "d2"       "brew install d2"
+  )
+  local i
+  for (( i = 1; i <= ${#renderers[@]}; i += 2 )); do
+    local tool="${renderers[$i]}" hint="${renderers[$((i+1))]}"
+    if command -v "$tool" &>/dev/null; then
+      print "  $tool  available"
+    else
+      print "  $tool  not found (optional) — $hint"
+    fi
+  done
+
+  if (( ok )); then
+    print "\nAll required prerequisites satisfied."
+  else
+    print -u2 "\nMissing required prerequisites — see above."
+  fi
+
+  return $(( 1 - ok ))
+}
+
+# ── Main ─────────────────────────────────────────────────────────────────────
+
+if [[ "${1:-}" == "--check" ]]; then
+  check_prereqs
+  exit $?
+fi
+
+readonly INPUT="${1:?Usage: markdown-to-pdf <input.md> [output.pdf]
+       Run --check to verify prerequisites}"
+readonly OUTPUT="${2:-${INPUT%.md}.pdf}"
+
+if [[ ! -f "$INPUT" ]]; then
+  print -u2 "Error: input file not found: $INPUT"
+  exit 1
+fi
+
+if ! command -v pandoc &>/dev/null; then
+  print -u2 "Error: pandoc not found — brew install pandoc"
+  print -u2 "       Run '${0:t} --check' for full diagnostic"
+  exit 1
+fi
+
+if ! command -v xelatex &>/dev/null; then
+  print -u2 "Error: xelatex not found — brew install --cask mactex-no-gui"
+  print -u2 "       Run '${0:t} --check' for full diagnostic"
+  exit 1
+fi
+
+detect_monofont
+
+# LaTeX header for font, color, and element styling
+readonly LATEX_HEADER='
+\usepackage{xcolor}
+\usepackage{sectsty}
+\usepackage{fontspec}
+\usepackage{mdframed}
+\usepackage{etoolbox}
+\usepackage{colortbl}
+\usepackage{array}
+
+% Color palette — subtle navy/slate hierarchy
+\definecolor{h1color}{HTML}{1B2A4A}
+\definecolor{h2color}{HTML}{2C4066}
+\definecolor{h3color}{HTML}{4A6082}
+\definecolor{quotebar}{HTML}{2C4066}
+\definecolor{quotebg}{HTML}{F4F6F9}
+\definecolor{tablehead}{HTML}{1B2A4A}
+\definecolor{tableheadbg}{HTML}{E8ECF2}
+\definecolor{tablealtbg}{HTML}{F2F5F9}
+\definecolor{tablerule}{HTML}{4A6082}
+
+% Heading font and colors
+\newfontfamily\headingfont{DejaVu Sans Bold}
+\allsectionsfont{\headingfont}
+\sectionfont{\headingfont\Large\color{h1color}}
+\subsectionfont{\headingfont\large\color{h2color}}
+\subsubsectionfont{\headingfont\normalsize\color{h3color}}
+
+% Blockquote styling — left bar with light background
+\definecolor{quotetext}{HTML}{333333}
+\newmdenv[
+  topline=false,
+  bottomline=false,
+  rightline=false,
+  leftline=true,
+  linewidth=3pt,
+  linecolor=quotebar,
+  backgroundcolor=quotebg,
+  innerleftmargin=12pt,
+  innerrightmargin=12pt,
+  innertopmargin=8pt,
+  innerbottommargin=8pt,
+  skipabove=10pt,
+  skipbelow=10pt
+]{styledquote}
+
+% Redefine pandoc quote environment to use styled version
+\renewenvironment{quote}{\begin{styledquote}\color{quotetext}}{\end{styledquote}}
+
+% Table header styling — colored text on light background
+\AtBeginEnvironment{longtable}{%
+  \arrayrulecolor{tablerule}%
+  \rowcolors{2}{tablealtbg}{white}%
+}
+
+% Body font — full weight family
+\setmainfont{DejaVu Serif}[
+  BoldFont={DejaVu Serif Bold},
+  ItalicFont={DejaVu Serif Italic},
+  BoldItalicFont={DejaVu Serif Bold Italic}
+]
+'
+
+# Lua filter to color table header cells and redistribute column widths
+# based on actual content length so narrow columns (timestamps, labels)
+# don't consume space that content-heavy columns need.
+readonly LUA_FILTER='
+-- Insert \allowbreak{} after every "/" in Str inlines so XeLaTeX can
+-- break path-like strings (e.g. github/user-systems) at the slash
+-- instead of only at explicit hyphens deep in the string.
+local function slash_breakable(inlines)
+  local out = {}
+  for _, item in ipairs(inlines) do
+    if item.t == "Str" and item.text:find("/", 1, true) then
+      local s = item.text
+      local i = 1
+      while i <= #s do
+        local j = s:find("/", i, true)
+        if j then
+          table.insert(out, pandoc.Str(s:sub(i, j)))
+          table.insert(out, pandoc.RawInline("latex", "\\allowbreak{}"))
+          i = j + 1
+        else
+          table.insert(out, pandoc.Str(s:sub(i)))
+          break
+        end
+      end
+    else
+      table.insert(out, item)
+    end
+  end
+  return out
+end
+
+local function fix_cell_slashes(cell)
+  for _, block in ipairs(cell.contents) do
+    if (block.t == "Para" or block.t == "Plain") and block.content then
+      block.content = pandoc.Inlines(slash_breakable(block.content))
+    end
+  end
+end
+
+function Table(el)
+  -- pandoc 3.x uses "colspecs" (plural); pandoc 2.x used "colspec" (singular)
+  local colspecs = el.colspecs or el.colspec
+  local n_cols = colspecs and #colspecs or 0
+
+  if n_cols > 0 then
+    -- Measure max stringified content length per column across all rows
+    local col_max = {}
+    for i = 1, n_cols do col_max[i] = 4 end  -- floor to avoid zero-width columns
+
+    local function measure(row)
+      for i, cell in ipairs(row.cells) do
+        if i <= n_cols then
+          local len = #pandoc.utils.stringify(cell)
+          if len > col_max[i] then col_max[i] = len end
+        end
+      end
+    end
+
+    if el.head then
+      for _, row in ipairs(el.head.rows) do measure(row) end
+    end
+    if el.bodies then
+      for _, body in ipairs(el.bodies) do
+        for _, row in ipairs(body.body) do measure(row) end
+      end
+    end
+
+    -- Clamp effective widths: floor prevents short columns from vanishing;
+    -- ceiling prevents one content-heavy column from consuming everything.
+    local FLOOR_CHARS = 15
+    local CEIL_CHARS  = 100
+    local col_eff = {}
+    for i = 1, n_cols do
+      col_eff[i] = math.max(FLOOR_CHARS, math.min(CEIL_CHARS, col_max[i]))
+    end
+
+    -- Redistribute widths proportionally to clamped content length
+    local total = 0
+    for i = 1, n_cols do total = total + col_eff[i] end
+    local new_colspecs = {}
+    for i = 1, n_cols do
+      new_colspecs[i] = {colspecs[i][1], col_eff[i] / total}
+    end
+    -- Assign back using whichever field name the version uses
+    if el.colspecs then
+      el.colspecs = new_colspecs
+    else
+      el.colspec = new_colspecs
+    end
+  end
+
+  -- Make slashes breakable in all body cells
+  if el.bodies then
+    for _, body in ipairs(el.bodies) do
+      for _, row in ipairs(body.body) do
+        for _, cell in ipairs(row.cells) do
+          fix_cell_slashes(cell)
+        end
+      end
+    end
+  end
+
+  -- Style header cells with navy color
+  if el.head then
+    for _, row in ipairs(el.head.rows) do
+      for _, cell in ipairs(row.cells) do
+        for _, block in ipairs(cell.contents) do
+          if block.content then
+            table.insert(block.content, 1, pandoc.RawInline("latex", "\\textcolor{tablehead}{"))
+            table.insert(block.content, pandoc.RawInline("latex", "}"))
+          end
+        end
+      end
+    end
+  end
+
+  return el
+end
+'
+
+readonly SCRIPT_DIR="${0:A:h}"
+
+pandoc \
+  --from markdown+lists_without_preceding_blankline+hard_line_breaks \
+  --pdf-engine=xelatex \
+  -V geometry:margin=1in \
+  -V fontsize=10pt \
+  -V colorlinks=true \
+  -V linkcolor=blue \
+  -V monofont="$MONOFONT" \
+  --include-in-header=<(print -r -- "$LATEX_HEADER") \
+  --lua-filter=<(print -r -- "$LUA_FILTER") \
+  --lua-filter="${SCRIPT_DIR}/diagram.lua" \
+  -o "$OUTPUT" \
+  "$INPUT"
+
+print "Generated: $OUTPUT"

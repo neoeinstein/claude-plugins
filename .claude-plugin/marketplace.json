@@ -67,6 +67,17 @@
       }
     },
     {
+      "name": "markdown-to-pdf",
+      "version": "0.1.0",
+      "description": "Convert Markdown files to styled PDFs — navy heading hierarchy, blockquote styling, smart table widths, and optional diagram rendering",
+      "source": "./plugins/markdown-to-pdf",
+      "category": "productivity",
+      "author": {
+        "name": "Marcus Griep",
+        "email": "marcus@griep.us"
+      }
+    },
+    {
       "name": "agent-team-pipeline",
       "version": "0.3.0",
       "description": "Structured multi-agent development pipeline with phased investigation, planning, implementation, and two-stage review (spec compliance + pluggable evaluators)",
