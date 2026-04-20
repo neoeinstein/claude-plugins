@@ -161,6 +161,18 @@ readonly LATEX_HEADER='
 \usepackage{etoolbox}
 \usepackage{colortbl}
 \usepackage{array}
+\usepackage{fvextra}
+
+% Wrap long lines in code blocks and show line numbers
+\fvset{breaklines=true, breakanywhere=true, breakautoindent=true}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{
+  breaklines=true,
+  breakanywhere=true,
+  breakautoindent=true,
+  numbers=left,
+  numbersep=8pt,
+  commandchars=\\\{\}
+}
 
 % Color palette — subtle navy/slate hierarchy
 \definecolor{h1color}{HTML}{1B2A4A}
