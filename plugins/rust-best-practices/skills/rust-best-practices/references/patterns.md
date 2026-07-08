@@ -167,6 +167,8 @@ enum ProcessError {
 fn process(command: Command) -> Result<(), ProcessError> { }
 ```
 
+This applies to **dispatch identity** too — a `publish(kind: &str, bytes: &[u8])` signature is stringly-typed dispatch. Bind the identity to the payload *type* via a trait instead. See `references/serde.md` § Constructing Output.
+
 ### God Object
 
 ```rust
