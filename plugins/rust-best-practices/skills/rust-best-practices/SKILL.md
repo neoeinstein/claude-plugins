@@ -31,6 +31,7 @@ Reference guide for writing idiomatic, safe, and maintainable Rust code. Load to
 | Writing or reviewing unsafe code, FFI, MaybeUninit | `references/unsafe.md` |
 | `Send`/`Sync` bounds, thread safety, Arc/Mutex | `references/send-sync.md` |
 | Serde, JSON serialization, derive attributes | `references/serde.md` |
+| Building a JSON/message payload you own — reaching for `serde_json::json!` or `serde_json::to_vec` of an ad-hoc value | `references/serde.md` |
 | `dead_code` on `Deserialize` structs, DTO dead fields | `references/dead-code-in-serde-structs.md` |
 | Using aliri_braid, seeing `new()` conflicts or `Infallible` errors | `references/type-safety.md` |
 
@@ -87,6 +88,7 @@ Before writing code that matches these patterns, STOP and reconsider.
 | Keep unused fields on a `Deserialize` struct | "The field must match the schema" / "It documents the response" | Serde ignores unknown fields. Dead DTO fields aren't safety — they're coupling. Delete the field; comment the schema. Load `references/dead-code-in-serde-structs.md`. |
 | Assume `Option<T>` handles missing JSON keys | "`Option` means optional" / "null and missing are the same" | **They are not.** `null` → `None` is serde_json. Missing key → `None` is an implicit derive feature. Always use `#[serde(default)]` on `Option<T>` fields where the key may be absent. Load `references/serde.md`. |
 | Skip `skip_serializing_if` on `Option<T>` | "null in the output is fine" | It inflates payloads and breaks PATCH semantics. Pair `#[serde(default)]` with `#[serde(skip_serializing_if = "Option::is_none")]`. For three-state (missing/null/present), use `optional_field::Field<T>`. Load `references/serde.md`. |
+| Reach for `serde_json::json!` or build a `serde_json::Value` by hand for data you own | "It's just a small payload" / "A struct is overkill for three fields" | Define a `#[derive(Serialize)]` struct — the shape becomes a compiler-checked type, not magic-string keys. `json!` is for genuinely dynamic/forwarded JSON only. Load `references/serde.md`. |
 
 ## Authoritative Resources
 

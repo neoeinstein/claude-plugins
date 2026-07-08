@@ -7,6 +7,7 @@
 - Writing custom serialization
 - Optimizing for performance (zero-copy)
 - Handling unknown fields
+- Constructing outgoing payloads you own (requests, events, messages)
 
 ## Quick Reference
 
@@ -24,6 +25,64 @@
 | Override trait bounds | `#[serde(bound = "T: MyTrait")]` |
 | Zero-copy string | `&'a str` field |
 | Zero-copy with fallback | `Cow<'a, str>` with `#[serde(borrow)]` |
+
+## Constructing Output: Typed Structs, Not `json!`
+
+Most of this doc is about *reading* data you don't control. This section is about *writing* data you **do** control — request bodies, event payloads, message-bus messages, API responses.
+
+**`serde_json::json!` (and hand-built `serde_json::Value`) is almost always the wrong tool for data you own.** It trades away every guarantee the type system gives you for a bag of magic-string keys:
+
+- No field is checked. A typo'd key (`"mached"`) or a wrong-typed value compiles and ships.
+- The shape lives at the call site, not in a type. Nothing links "this payload" to "the topic/endpoint/kind it belongs to," so one producer can emit three incompatible shapes and nothing complains.
+- Consumers can't share a `#[derive(Deserialize)]` type — the contract is untyped on both ends.
+
+Reserve `json!` for genuinely dynamic data: proxying/forwarding a `Value` you received, test fixtures, or free-form blobs.
+
+```rust
+// ❌ BAD — property bag with magic-string keys, stringly-typed dispatch
+let state = serde_json::json!({
+    "matched": report.matched_count(),
+    "missing": report.total_missing_count(),
+    "last_run": now,
+});
+publisher.publish_state("orphans", &serde_json::to_vec(&state)?).await?;
+
+// ✅ GOOD — the shape is a type; the destination is bound to that type
+#[derive(Serialize)]
+struct OrphanState {
+    matched: u64,
+    missing: u64,
+    last_run: OffsetDateTime,
+}
+
+impl StatePayload for OrphanState {
+    const NODE: &'static str = "orphans";  // identity lives with the type
+}
+
+publisher.publish_state(&OrphanState { /* ... */ }).await?;
+```
+
+### Bind the Identity to the Type, Not a String Argument
+
+A `publish(group: &str, bytes: &[u8])` signature is stringly-typed dispatch: the caller must supply the right string *and* the matching bytes, with nothing enforcing they agree. Make the payload type carry its own identity via a trait, and take the typed value:
+
+```rust
+// ❌ BAD — any string with any bytes typechecks
+async fn publish_state(&self, group: &str, payload: &[u8]) -> Result<()>;
+
+// ✅ GOOD — the type names its own destination and serializes itself
+trait StatePayload: Serialize {
+    /// The node/topic segment this payload publishes under.
+    const NODE: &'static str;
+}
+
+async fn publish_state<T: StatePayload>(&self, payload: &T) -> Result<()> {
+    let bytes = serde_json::to_vec(payload)?;
+    self.publish_raw(T::NODE, &bytes).await
+}
+```
+
+Now `publish_state(&OrphanState { .. })` is the *only* way to publish an orphan state, the topic string exists in exactly one place, and adding a field is a struct edit the compiler checks. You cannot publish the wrong shape under the wrong node.
 
 ## `null` vs Missing Keys
 
