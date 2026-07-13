@@ -3,7 +3,6 @@
 ## When to Use This Reference
 
 - Compiler errors about lifetime annotations
-- Understanding elision rules
 - Working with `'static` bounds (especially `tokio::spawn`)
 - Advanced patterns like HRTBs
 - Migrating to Rust 2024 edition
@@ -18,50 +17,9 @@
 | Closure borrows from arguments | May need HRTB (`for<'a>`) |
 | Rust 2024 `impl Trait` captures too much | Use `+ use<>` for precise capture |
 
-## Lifetime Elision Rules
+## Lifetime Elision
 
-The compiler applies three rules to infer lifetimes:
-
-### Rule 1: Each Input Gets Its Own Lifetime
-
-```rust
-fn foo(x: &str, y: &str)
-// becomes
-fn foo<'a, 'b>(x: &'a str, y: &'b str)
-```
-
-### Rule 2: Single Input → All Outputs
-
-```rust
-fn foo(x: &str) -> &str
-// becomes
-fn foo<'a>(x: &'a str) -> &'a str
-```
-
-### Rule 3: `&self` → All Outputs
-
-```rust
-fn foo(&self) -> &T
-// becomes
-fn foo<'a>(&'a self) -> &'a T
-```
-
-### When Elision Fails
-
-```rust
-fn get_str() -> &str;                    // ❌ No input lifetime
-fn frob(s: &str, t: &str) -> &str;       // ❌ Ambiguous source
-```
-
-Both require explicit annotations.
-
-### Structs Always Need Annotations
-
-```rust
-struct Wrapper<'a> {
-    data: &'a str,  // Required
-}
-```
+The compiler infers lifetimes by three rules: each input reference gets its own lifetime; a single input lifetime propagates to all outputs; and `&self`'s lifetime propagates to all outputs. Elision fails — requiring explicit annotation — when an output reference can't be traced to a single input (`fn frob(s: &str, t: &str) -> &str`) or has no input at all (`fn get_str() -> &str`). Structs holding references always annotate: `struct Wrapper<'a> { data: &'a str }`.
 
 ## When to Use `'static`
 
@@ -72,29 +30,24 @@ struct Wrapper<'a> {
 - **Global/leaked data** - `Box::leak`
 - **Thread-safe sharing** - Often with `Arc`
 
-### Common Pattern: Owned Data for Tasks
+### Owned Data for Tasks
+
+`tokio::spawn` needs `'static`, so borrowed data won't compile — move or clone owned data into the task:
 
 ```rust
-// ❌ Won't compile - borrowed data isn't 'static
 let data = get_data();
 tokio::spawn(async move {
-    process(&data).await
-});
-
-// ✅ Clone/own the data
-let data = get_data();
-tokio::spawn(async move {
-    process(data).await  // data moved into task
+    process(data).await  // data moved into task, not borrowed
 });
 ```
 
 ### Anti-Pattern: Overusing `'static`
 
 ```rust
-// ❌ Overly restrictive
+// ❌ Overly restrictive - forces the caller's data to be 'static
 fn process(data: &'static str) { }
 
-// ✅ Let caller decide lifetime
+// ✅ Let the caller decide the lifetime
 fn process(data: &str) { }
 ```
 
@@ -104,30 +57,7 @@ fn process(data: &str) { }
 
 ## Higher-Rank Trait Bounds (HRTB)
 
-### The Problem
-
-When a closure needs to work with **any** lifetime:
-
-```rust
-// What lifetime goes here? It depends on when call() is invoked!
-impl<F> Closure<F>
-where
-    F: Fn(&'??? (u8, u16)) -> &'??? u8
-```
-
-### The Solution: `for<'a>`
-
-```rust
-impl<F> Closure<F>
-where
-    for<'a> F: Fn(&'a (u8, u16)) -> &'a u8
-```
-
-`for<'a>` means "for all choices of `'a`"—the function works with any lifetime.
-
-### Common HRTB Patterns
-
-**Callbacks that borrow from arguments:**
+When a closure must work with **any** lifetime the caller later supplies — not one fixed lifetime — use `for<'a>`, meaning "for all choices of `'a`":
 
 ```rust
 fn with_callback<F>(f: F)
@@ -139,24 +69,14 @@ where
 }
 ```
 
-### When You'll Encounter HRTBs
-
-- `Fn` traits with reference parameters
-- Generic code accepting closures that borrow from arguments
-- Parser combinators
-- Database/serialization callbacks
+You'll hit HRTBs with `Fn` traits taking reference parameters, generic code accepting closures that borrow from their arguments, parser combinators, and serialization callbacks.
 
 ## Rust 2024 Lifetime Capture Rules
 
-### What Changed
-
-In Rust 2024, all in-scope generics (including lifetimes) are **implicitly captured** by `impl Trait`:
+In Rust 2024, `impl Trait` **implicitly captures all in-scope generics, including lifetimes**:
 
 ```rust
-// Rust 2021: 'a is NOT captured
-fn foo<'a>(x: &'a str) -> impl Sized { }
-
-// Rust 2024: 'a IS captured
+// Rust 2021: 'a is NOT captured. Rust 2024: 'a IS captured.
 fn foo<'a>(x: &'a str) -> impl Sized { }
 ```
 
@@ -174,17 +94,7 @@ fn bar<'a>(x: &'a str) -> impl Sized + use<> {
 }
 ```
 
-### Migration from Rust 2021
-
-Old workarounds can be removed:
-
-```rust
-// Rust 2021 workaround (no longer needed)
-fn foo<'a>(x: &'a str) -> impl Sized + Captures<'a> { }
-
-// Rust 2024 - just works
-fn foo<'a>(x: &'a str) -> impl Sized { }
-```
+The old `impl Sized + Captures<'a>` workaround is no longer needed.
 
 ## Common Mistakes
 
@@ -193,7 +103,6 @@ fn foo<'a>(x: &'a str) -> impl Sized { }
 | Returning `&str` from multiple `&str` inputs | Add explicit lifetime annotations |
 | Assuming `'static` means "never dropped" | Remember owned types are `'static` |
 | Fighting borrow checker with references | Consider owned types or `Arc` |
-| Overusing `'static` bounds | Let caller decide lifetime |
 | Confused by HRTB errors | Look for closures borrowing from arguments |
 
 ## Resources

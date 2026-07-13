@@ -1,5 +1,22 @@
 # Serde Serialization Patterns
 
+## Choosing a serialization stack: serde vs facet
+
+serde and facet each anchor a whole ecosystem. Pick one as the default; bridge at boundaries.
+
+| Concern | serde stack | facet stack |
+|---|---|---|
+| Serialize | `serde` + `serde_json` / `serde_*` | `facet` + `facet-json` / `facet-csv` |
+| Errors | `thiserror` + `miette` | `facet-error` |
+| CLI / config | `clap` / `figment` | `figue` |
+| String newtypes | `aliri_braid` | `strid` braids |
+| Test / diff | `assert_eq!` / `insta` | `rediff` |
+| Validation | `validator` / manual | `facet-validate` |
+
+**serde** — the mature default: largest ecosystem, faster (monomorphizes per type×format, so it wins hot loops), and what public APIs and serde-demanding dependencies expect. **facet** — one `#[derive(Facet)]` powers many formats (JSON, CSV, pretty-print, diff, CLI) with span-aware parse errors; younger and slower in hot loops. Both derives can coexist on one type; prefer bridging via `From`/`TryFrom` at crate boundaries over dual-deriving domain types.
+
+Deep facet guidance (attributes, Decimal/money patterns, gotchas) lives in the separate `facet` skill, which loads on its own triggers.
+
 ## When to Use This Reference
 
 - Configuring derive attributes (`rename_all`, `skip_serializing_if`)
@@ -140,15 +157,6 @@ struct Wrapper<T> {
 
 For generic structs, either omit `#[serde(default)]` on the generic fields (relying on derive behavior for `Option<T>`), or use `#[serde(bound = "...")]` to override the generated bounds.
 
-### STOP — Anti-Rationalization
-
-| Rationalization | Reality |
-|-----------------|---------|
-| "`Option<T>` handles missing fields automatically" | **It doesn't.** `null` → `None` is serde_json. Missing key → `None` is the derive macro. These are separate mechanisms. Be explicit with `#[serde(default)]`. |
-| "null and missing are the same thing" | **They are not.** Different code paths in the deserializer. `null` goes through `deserialize_option()`. Missing goes through `deserialize_missing_field()`. Don't conflate them. |
-| "`#[serde(default)]` is redundant on `Option<T>`" | It's not redundant — it makes the contract explicit. Implicit behavior can change or surprise. Explicit `#[serde(default)]` documents that the key may be absent. |
-| "The tests pass without `#[serde(default)]`" | Your test data probably includes the key. Real-world APIs omit keys. Write tests for missing keys, or just add the attribute. |
-
 ### Serialization: Pair `#[serde(default)]` with `skip_serializing_if`
 
 The deserialization and serialization sides are mirrors. If a field can be absent on input, it should also be omittable on output. Always pair `#[serde(default)]` with `#[serde(skip_serializing_if = "Option::is_none")]`:
@@ -209,42 +217,6 @@ The `#[serde_optional_fields]` macro scans the struct for `Field<T>` fields and 
 | `"field": value` | `Field::Present(Some(v))` | Set to new value |
 
 This is essential for **PATCH endpoints** — `Option<T>` can't distinguish "the client didn't send this field" from "the client wants to null it out." `Field<T>` makes that distinction at the type level.
-
-## Common Attributes
-
-### Container Level
-
-```rust
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]  // snake_case, PascalCase, kebab-case
-#[serde(deny_unknown_fields)]        // Reject unexpected fields
-#[serde(default)]                    // Use Default for all missing fields
-struct Config { /* ... */ }
-```
-
-### Field Level
-
-```rust
-#[derive(Serialize, Deserialize)]
-struct User {
-    #[serde(rename = "type")]  // Handle reserved keywords
-    user_type: String,
-
-    #[serde(alias = "user_name", alias = "username")]  // Accept multiple names
-    name: String,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    nickname: Option<String>,
-
-    #[serde(default = "default_timeout")]
-    timeout_ms: u64,
-
-    #[serde(skip)]  // Skip both serialization and deserialization
-    internal: String,
-}
-
-fn default_timeout() -> u64 { 5000 }
-```
 
 ## Enum Representations
 
@@ -494,7 +466,7 @@ struct UserRow {
 
 **Never prefix Serde fields with `_` to suppress `dead_code`.** Serde derives the key name from the identifier — `_field` expects `"_field"` in the JSON/SQL, not `"field"`. This silently breaks deserialization at runtime.
 
-The only legitimate `#[expect(dead_code)]` on DTO-adjacent structs is for **structural requirements** — macro-required fields or typed struct APIs. See `references/dead-code-in-serde-structs.md` for the full decision framework.
+The only legitimate `#[expect(dead_code)]` on a `Deserialize`/DTO-adjacent struct is a **structural requirement** — a field a macro forces to exist (e.g. `#[durable_object]` requires an `env` field), or a typed-struct API where the container matters but the field value doesn't (e.g. D1's `.first::<T>()` needs a typed row you only check for `Some`/`None`). Those are the only two exceptions; "it documents the schema" is not one of them — use a comment.
 
 ## Resources
 

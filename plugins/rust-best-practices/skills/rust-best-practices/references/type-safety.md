@@ -40,6 +40,8 @@
 
 **Money should use `doubloon::Money`** or `rust_decimal::Decimal`, not floats. Floats accumulate rounding errors.
 
+**Keep money exact in the core; round only at boundaries.** Do arithmetic in exact `Decimal`; apply banker's rounding (`MidpointNearestEven`) only at output boundaries (serialization, display), never on intermediate values — intermediate rounding compounds across sums, averages, and amortization.
+
 ## Patterns
 
 ### Simple Newtype (Manual)

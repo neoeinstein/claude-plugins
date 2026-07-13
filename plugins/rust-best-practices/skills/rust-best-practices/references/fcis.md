@@ -89,12 +89,7 @@ The `service::` calls handle I/O — tested with integration tests or mock datab
 
 ## Why This Matters in Rust
 
-Rust's type system makes FCIS particularly effective:
-
-- **No hidden side effects:** Unlike languages with implicit I/O, Rust's async and borrowing make I/O visible in function signatures.
-- **Ownership enforces boundaries:** Pure functions take `&T` or owned values — they can't mutate external state.
-- **Testability without mocks:** Pure domain logic needs only unit tests with concrete data. No trait objects, no mock frameworks.
-- **Compile-time boundary enforcement:** A domain module that doesn't import `tokio`, `sqlx`, or `reqwest` is provably pure.
+The boundary is mechanically checkable: a domain module that doesn't import `tokio`, `sqlx`, or `reqwest` is provably pure.
 
 ## Common Mistakes
 

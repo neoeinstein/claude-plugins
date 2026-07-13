@@ -1,14 +1,14 @@
 # rust-best-practices Plugin
 
-Last verified: 2026-02-04
+Last verified: 2026-07-12
 
 ## Purpose
 
-Primary plugin providing idiomatic Rust development guidance. Bundles a skill with lazy-loaded reference docs and an auto-formatting hook.
+Primary plugin providing idiomatic Rust development guidance. Bundles two skills with lazy-loaded reference docs and an auto-formatting hook.
 
 ## Contracts
 
-- **Exposes**: `rust-best-practices:rust-best-practices` skill, PostToolUse formatting hook
+- **Exposes**: `rust-best-practices:rust-best-practices` and `rust-best-practices:facet` skills, PostToolUse formatting hook
 - **Guarantees**: Hook is fail-open (never blocks edits). Reference docs are self-contained and independently loadable. SKILL.md provides lookup tables mapping tasks and error messages to specific reference docs.
 - **Expects**: `rustfmt` available on PATH for hook. Nightly toolchain optional (used when `rustfmt.toml` exists).
 
@@ -28,7 +28,8 @@ Primary plugin providing idiomatic Rust development guidance. Bundles a skill wi
 ## Key Files
 
 - `skills/rust-best-practices/SKILL.md` -- Main skill with lookup tables and core principles
-- `skills/rust-best-practices/references/` -- 15 reference docs (async, error-handling, type-safety, unsafe, testing, etc.)
+- `skills/rust-best-practices/references/` -- 17 reference docs (async, error-handling, type-safety, unsafe, testing, lint-setup, responding-to-lints, etc.)
+- `skills/facet/SKILL.md` -- facet-ecosystem skill (loads on its own triggers) with 7 reference docs
 - `hooks/format-rust.sh` -- PostToolUse hook for rustfmt
 - `hooks/hooks.json` -- Hook configuration (triggers on Write|Edit)
 

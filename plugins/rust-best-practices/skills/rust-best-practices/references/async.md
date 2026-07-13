@@ -101,9 +101,8 @@ let mut set = JoinSet::new();
 for i in 0..10 {
     set.spawn(async move { i });
 }
-
 while let Some(res) = set.join_next().await {
-    let idx = res.unwrap();
+    let idx = res?;
 }
 // All remaining tasks aborted when JoinSet dropped
 ```
@@ -123,24 +122,16 @@ while let Some(res) = set.join_next().await {
 
 ### The Actor Pattern
 
+An actor owns its state in a task and receives `mpsc` messages; each message carries a `oneshot::Sender` for its reply. The public handle is a cheap `Clone` wrapper over the `mpsc::Sender`.
+
 ```rust
-struct MyActor {
-    receiver: mpsc::Receiver<ActorMessage>,
-    next_id: u32,
-}
-
-#[derive(Clone)]
-pub struct MyActorHandle {
-    sender: mpsc::Sender<ActorMessage>,
-}
-
 enum ActorMessage {
     GetUniqueId { respond_to: oneshot::Sender<u32> },
 }
 
-async fn run_my_actor(mut actor: MyActor) {
-    while let Some(msg) = actor.receiver.recv().await {
-        actor.handle_message(msg);
+async fn run_actor(mut rx: mpsc::Receiver<ActorMessage>) {
+    while let Some(msg) = rx.recv().await {
+        // handle msg, reply through its respond_to
     }
 }
 ```
@@ -160,10 +151,7 @@ async fn run_my_actor(mut actor: MyActor) {
 
 ### Deadlock Warning
 
-Bounded channels can deadlock if they form a cycle. Solutions:
-- Use `try_send` for one link in the cycle
-- Use `oneshot` for responses (always returns immediately)
-- Break cycles with unbounded channels where appropriate
+Bounded channels can deadlock if they form a cycle. Break the cycle with `try_send` on one link, a `oneshot` for responses (always returns immediately), or an unbounded channel where appropriate.
 
 ## spawn vs spawn_blocking
 
@@ -174,28 +162,17 @@ Bounded channels can deadlock if they form a cycle. Solutions:
 | CPU-bound, many tasks | `rayon` |
 | Runs forever | `std::thread::spawn` |
 
-### spawn_blocking Caveats
+**`spawn_blocking` tasks cannot be aborted once started** — they run to completion even if `abort()` is called.
+
+Bridge CPU-bound `rayon` work back into async over a `oneshot`:
 
 ```rust
-// spawn_blocking tasks CANNOT be aborted once started
-let handle = tokio::task::spawn_blocking(|| {
-    expensive_computation()  // Runs to completion even if abort() called
+let (send, recv) = tokio::sync::oneshot::channel();
+rayon::spawn(move || {
+    let sum: i32 = nums.par_iter().sum();
+    let _ = send.send(sum);
 });
-```
-
-### Rayon Integration
-
-```rust
-async fn parallel_sum(nums: Vec<i32>) -> i32 {
-    let (send, recv) = tokio::sync::oneshot::channel();
-
-    rayon::spawn(move || {
-        let sum = nums.par_iter().sum();
-        let _ = send.send(sum);
-    });
-
-    recv.await.expect("Panic in rayon::spawn")
-}
+recv.await.expect("rayon task panicked")
 ```
 
 ## Mutex Comparison
@@ -210,49 +187,39 @@ Choosing the wrong mutex is a common source of bugs. See also `send-sync.md` for
 
 ### std::sync::Mutex (Default Choice)
 
+**Two distinct problems in async:**
+
+1. **Blocking the executor** — a contended lock blocks the thread, starving the runtime, even for brief contention.
+2. **Holding across `.await` deadlocks** — the task holding the lock may need to resume on the very thread that's blocked waiting for it. (`std::sync::MutexGuard` is also `!Send`, so this usually fails to compile under a multi-threaded runtime.)
+
 ```rust
 use std::sync::Mutex;
 
-// ✅ GOOD - lock released before await
+// ❌ BAD - guard held across await: deadlock risk, and the future is !Send
+async fn bad(mutex: &Mutex<i32>) {
+    let mut guard = mutex.lock().unwrap();
+    *guard += 1;
+    do_async_work().await;  // guard still held across .await
+}
+
+// ✅ GOOD - copy/clone what you need, drop the guard, then await
 async fn good(mutex: &Mutex<i32>) {
-    {
+    let value = {
         let mut guard = mutex.lock().unwrap();
         *guard += 1;
-    }  // Released here
-    do_async_work().await;
+        *guard
+    };  // guard dropped here
+    do_async_work_with(value).await;
 }
 ```
 
-**Two distinct problems with std::sync::Mutex in async:**
-
-1. **Blocking the executor** - If the lock is contended, the thread blocks waiting, starving the async runtime. This happens even for brief contention.
-
-2. **Holding across `.await` causes deadlocks** - The task holding the lock might need to resume on the same thread that's blocked waiting for the lock.
-
-```rust
-// ❌ BAD - Problem 1: blocks executor thread if contended
-async fn blocks_executor(mutex: &Mutex<i32>) {
-    let guard = mutex.lock().unwrap();  // Thread blocks here!
-    // Even if released immediately, contention starves runtime
-}
-
-// ❌ BAD - Problem 2: potential deadlock
-async fn potential_deadlock(mutex: &Mutex<i32>) {
-    let guard = mutex.lock().unwrap();
-    do_async_work().await;  // Task suspended while holding lock
-    // If runtime tries to resume this on a thread waiting for this lock: deadlock
-}
-```
-
-**Advantages:** Faster when uncontended, no async overhead.
-**Use when:** Lock is held briefly, contention is rare, no `.await` while locked.
+**Use when:** lock held briefly, contention rare, no `.await` while locked — faster than `tokio::sync::Mutex` when uncontended.
 
 ### tokio::sync::Mutex (For Holding Across .await)
 
 ```rust
 use tokio::sync::Mutex;
 
-// ✅ Now allowed - guard can be held across await
 async fn with_lock(mutex: &Mutex<i32>) {
     let mut guard = mutex.lock().await;
     *guard += 1;
@@ -260,8 +227,7 @@ async fn with_lock(mutex: &Mutex<i32>) {
 }
 ```
 
-**Use when:** You genuinely need to hold the lock across `.await` points.
-**Avoid when:** Quick synchronous access—`std::sync::Mutex` is faster.
+**Use when:** you genuinely need to hold the lock across `.await`. **Avoid when:** quick synchronous access—`std::sync::Mutex` is faster.
 
 ### RobustMutex (Cancellation-Safe)
 
@@ -281,12 +247,10 @@ tokio::select! {
 
 ## Timeouts
 
-Use `tokio::time::timeout` to bound async operations:
+Bound any async operation with `tokio::time::timeout`; a timeout returns `Err`:
 
 ```rust
-use tokio::time::{timeout, Duration};
-
-match timeout(Duration::from_secs(5), fetch_data()).await {
+match tokio::time::timeout(Duration::from_secs(5), fetch_data()).await {
     Ok(result) => handle(result?),
     Err(_) => handle_timeout(),
 }
@@ -348,23 +312,6 @@ trait MyTrait {
 
 ## STOP and Reconsider
 
-**Before holding a `MutexGuard` across `.await`:** Restructure your code. Clone the data you need, drop the guard, then await. If you genuinely need to hold the lock across an async boundary, use `tokio::sync::Mutex` — but first ask if the design is right.
-
-```rust
-// ❌ BAD - MutexGuard held across await
-let guard = mutex.lock().unwrap();
-let value = guard.clone();
-do_something(value).await; // guard still held!
-drop(guard);
-
-// ✅ GOOD - clone and drop before await
-let value = {
-    let guard = mutex.lock().unwrap();
-    guard.clone()
-}; // guard dropped here
-do_something(value).await;
-```
-
 **Before spawning a task without tracking the `JoinHandle`:** Untracked tasks are fire-and-forget — you lose errors, can't cancel them, and can't wait for them during shutdown. Use `JoinSet` or `TaskTracker` to manage task lifecycles.
 
 ```rust
@@ -381,20 +328,6 @@ while let Some(result) = set.join_next().await {
 ```
 
 **Before using an unbounded channel:** Unbounded channels provide no backpressure. A slow consumer with a fast producer will consume unlimited memory. Use bounded channels with explicit capacity, and handle the `SendError` when the channel is full.
-
-## Common Mistakes
-
-| Mistake | Fix |
-|---------|-----|
-| `read_exact` in `select!` | Use `read` + manual buffering |
-| Blocking >100μs without `.await` | Use `spawn_blocking` or `rayon` |
-| Spawning forever-running task on `spawn_blocking` | Use `std::thread::spawn` |
-| Expecting `dyn AsyncTrait` to work | Use `async-trait` crate |
-| Bounded channel cycles | Use `try_send` or `oneshot` for responses |
-| Using `std::sync::Mutex` across `.await` | Use `tokio::sync::Mutex` or scope the guard |
-| Mutex in `select!` losing queue position | Use `RobustMutex` from cancel-safe-futures |
-| No timeout on network operations | Wrap with `tokio::time::timeout` |
-| Manual shutdown flags with `AtomicBool` | Use `CancellationToken` from tokio-util |
 
 ## Resources
 
