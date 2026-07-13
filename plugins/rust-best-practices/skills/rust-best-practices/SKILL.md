@@ -17,6 +17,7 @@ Reference guide for writing idiomatic, safe, and maintainable Rust code. Load to
 | Handling errors, seeing `.unwrap()` or `.expect()` | `references/error-handling.md` |
 | Using `bool` parameters, designing enums | `references/enum-design.md` |
 | Designing public APIs, builders, trait implementations | `references/api-design.md` |
+| Adding a `pub use`, choosing where a public item lives, re-exports, preludes | `references/re-exports.md` |
 | Setting up lints, workspace config, or the unsafe policy | `references/lint-setup.md` |
 | A lint fired; considering suppression; `#[allow]`/`#[expect]`; `dead_code`; `unfulfilled_lint_expectations` | `references/responding-to-lints.md` |
 | Structuring code, applying design patterns | `references/patterns.md` |
@@ -81,6 +82,7 @@ Before writing code that matches these patterns, STOP and reconsider.
 | Suppress a lint instead of fixing the code | "It's just a style lint" / "more readable this way" | **Fix the code.** Suppression is only for structural constraints you can't change. Load `references/responding-to-lints.md`. |
 | Add `#[allow(dead_code)]` | "Conditionally dead — used in tests" / "Not used yet" | If only tests use it, it IS dead — delete it. `#[expect(dead_code, reason = "…")]` is for interim work only. Load `references/responding-to-lints.md`. |
 | Add a module-wide `#![expect(…)]` or suppress `unfulfilled_lint_expectations` | "One suppression covers the module" / "the expectation warning is noise" | The warning means an `#[expect]` is stale or mis-scoped — delete it or `cfg_attr` it to the cfg where the lint fires. Load `references/responding-to-lints.md`. |
+| Re-export an item at an additional public path | "Shorter import" / "easier to find" | Every public item gets ONE canonical path; root promotion is for marquee items only. Load `references/re-exports.md`. |
 
 ## Authoritative Resources
 
