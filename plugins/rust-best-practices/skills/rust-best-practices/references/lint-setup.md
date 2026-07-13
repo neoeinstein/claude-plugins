@@ -87,6 +87,8 @@ non_local_definitions = "warn"
 redundant_imports = "warn"
 redundant_lifetimes = "warn"
 trivial_numeric_casts = "warn"
+# never downgrade: this forbid keeps every expect() self-expiring
+unfulfilled_lint_expectations = "forbid"
 unreachable_pub = "warn"
 unsafe_op_in_unsafe_fn = "warn"
 unused_import_braces = "warn"

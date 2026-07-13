@@ -18,7 +18,7 @@ Reference guide for writing idiomatic, safe, and maintainable Rust code. Load to
 | Using `bool` parameters, designing enums | `references/enum-design.md` |
 | Designing public APIs, builders, trait implementations | `references/api-design.md` |
 | Setting up lints, workspace config, or the unsafe policy | `references/lint-setup.md` |
-| A lint fired; considering suppression; `#[allow]`/`#[expect]`; `dead_code` | `references/responding-to-lints.md` |
+| A lint fired; considering suppression; `#[allow]`/`#[expect]`; `dead_code`; `unfulfilled_lint_expectations` | `references/responding-to-lints.md` |
 | Structuring code, applying design patterns | `references/patterns.md` |
 | Organizing modules, separating pure logic from I/O | `references/fcis.md` |
 | Unsure how to use a crate, need documentation | `references/finding-docs.md` |
@@ -80,6 +80,7 @@ Before writing code that matches these patterns, STOP and reconsider.
 | Use `mem::transmute` | "I know the layout" | You probably don't. Use `from_ne_bytes`, `bytemuck`, or `zerocopy` instead. Load `references/unsafe.md`. |
 | Suppress a lint instead of fixing the code | "It's just a style lint" / "more readable this way" | **Fix the code.** Suppression is only for structural constraints you can't change. Load `references/responding-to-lints.md`. |
 | Add `#[allow(dead_code)]` | "Conditionally dead — used in tests" / "Not used yet" | If only tests use it, it IS dead — delete it. `#[expect(dead_code, reason = "…")]` is for interim work only. Load `references/responding-to-lints.md`. |
+| Add a module-wide `#![expect(…)]` or suppress `unfulfilled_lint_expectations` | "One suppression covers the module" / "the expectation warning is noise" | The warning means an `#[expect]` is stale or mis-scoped — delete it or `cfg_attr` it to the cfg where the lint fires. Load `references/responding-to-lints.md`. |
 
 ## Authoritative Resources
 
