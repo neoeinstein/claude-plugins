@@ -17,6 +17,8 @@ curl -sL https://docs.rs/crate/serde/latest/json | zstd -d | \
   jq '.index[] | select(.name == "Deserializer")'
 ```
 
-## `cargo doc` feature gotcha
+## `cargo doc` for your own crate
+
+Build with `cargo doc` when generated docs help your task, but omit `--open` — it launches a browser window that interrupts the user while you're driving. Reserve `--open` for when the user explicitly wants to view the docs themselves. To read what you built, open the HTML under `target/doc/<crate>/` directly.
 
 `cargo doc` only builds docs for dependencies whose features are enabled. If a dep is behind an optional feature (e.g. `serde`), you need `cargo doc --features serde` or `cargo doc --all-features` for its docs to appear at all.
