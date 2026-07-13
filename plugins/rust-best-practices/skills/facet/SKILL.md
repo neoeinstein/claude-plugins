@@ -1,6 +1,6 @@
 ---
 name: facet
-description: Use when writing Rust code with the facet ecosystem - #[derive(Facet)], facet-json/facet-csv serialization, figue CLI/config, facet-error derives, facet-validate constraints, strid braids, rediff structural diffs, or serializing rust_decimal::Decimal/jiff/chrono types under facet. Serde-to-facet attribute mapping, Decimal/money patterns, and gotchas verified against facet 0.46.
+description: "Use when writing Rust code with the facet ecosystem - derive(Facet), facet-json/facet-csv serialization, figue CLI/config, facet-error derives, facet-validate constraints, strid braids, rediff structural diffs, or serializing rust_decimal::Decimal/jiff/chrono types under facet. Serde-to-facet attribute mapping, Decimal/money patterns, and gotchas verified against facet 0.46."
 ---
 
 # facet-rs: idiomatic facet ecosystem usage
