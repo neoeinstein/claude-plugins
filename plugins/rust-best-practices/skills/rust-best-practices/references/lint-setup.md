@@ -1,6 +1,6 @@
 # Lint Setup
 
-Setup-time authority: recommended workspace lint config, per-crate inheritance, the unsafe ladder, enforcement. For responding to a lint that fired, see `responding-to-lints.md`.
+Setup-time authority: the recommended lint set, opt-outs, the unsafe ladder, enforcement. For sharing this config across workspace members (`[lints] workspace = true` and the every-member-must-opt-in hazard), see `workspace.md`. For responding to a lint that fired, see `responding-to-lints.md`.
 
 ## Recommended workspace config
 
@@ -134,16 +134,7 @@ allow-dbg-in-tests = true
 
 These cover `#[cfg(test)]` code only. Helper fns in `tests/` integration files are not test items — suppress there with `#[expect(clippy::unwrap_used, reason = "tests")]`.
 
-## Inheritance — required in every crate
-
-Cargo does NOT inherit workspace lints. Every member crate needs:
-
-```toml
-[lints]
-workspace = true
-```
-
-A crate missing this line silently escapes every lint above — a real hazard when a new crate is scaffolded. Guard it with [`cargo-workspace-lints`](https://github.com/JarredAllen/cargo-workspace-lints), which fails if any member lacks the inheritance.
+Every member crate must opt in with `[lints] workspace = true`, or it silently escapes all of the above — see `workspace.md`.
 
 ## The unsafe ladder
 
