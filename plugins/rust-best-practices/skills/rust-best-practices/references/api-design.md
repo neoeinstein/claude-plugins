@@ -14,6 +14,7 @@
 | Many optional parameters | Builder or struct with defaults |
 | Enforcing state transitions | Typestate pattern |
 | Naming | Follow the [Rust API Guidelines](https://rust-lang.github.io/api-guidelines/) |
+| Where public items live, `pub use`, preludes | See `re-exports.md` |
 
 ## The Rule
 
