@@ -1,0 +1,12 @@
+{
+  "name": "prek",
+  "version": "0.1.0",
+  "description": "Set up git pre-commit hooks with prek, the fast pre-commit-compatible runner",
+  "author": {
+    "name": "Marcus Griep",
+    "email": "marcus@griep.us"
+  },
+  "repository": "https://github.com/neoeinstein/claude-plugins",
+  "license": "MIT",
+  "keywords": ["git", "hooks", "pre-commit", "prek"]
+}
