@@ -33,10 +33,13 @@ The default response to any lint is to fix the code, not silence it.
 | "The idiomatic form is less readable" | Less familiar, not less readable. Learn the idiom. |
 | "It's just cosmetic" | Cosmetic lints have cosmetic fixes. |
 | "The suggestion changes behavior" | Verify. If truly a false positive, suppress with a reason naming the semantic difference. |
+| "The expectation is only unfulfilled under `--all-targets`" | It's mis-scoped, not noise. `cfg_attr` it to the firing cfg — never suppress `unfulfilled_lint_expectations`. |
 
 ## `expect`, never `allow` (in source)
 
 `allow` levels appear ONLY in `Cargo.toml` (`[workspace.lints]`). Source code uses ONLY `#[expect(lint, reason = "…")]` — self-cleaning (warns when stale) and reviewable. The `allow_attributes` + `allow_attributes_without_reason` lints (see `lint-setup.md`) make this mechanical.
+
+**Item scope only.** Attach `#[expect]` to the narrowest offending item. A module/crate-level `#![expect(…)]` silently absorbs future violations, and under `--all-targets` its fulfillment differs per target (lib vs test) — the source of `unfulfilled_lint_expectations` noise.
 
 | Suppression | Verdict |
 |---|---|
@@ -44,6 +47,9 @@ The default response to any lint is to fix the code, not silence it.
 | `#[expect(clippy::X, reason = "…")]` in source | ✅ justified, per-instance |
 | `#[allow(clippy::X)]` in source | ❌ rejected by `allow_attributes` |
 | `#[expect(clippy::X)]` with no reason | ❌ rejected by `allow_attributes_without_reason` |
+| `#![expect(X, …)]` at module/crate scope | ❌ scope to the offending items |
+| `expect(unfulfilled_lint_expectations)` anywhere | ❌ hard error (E0453) — config forbids it |
+| Downgrading `unfulfilled_lint_expectations` in `Cargo.toml` | ❌ the forbid is load-bearing — it keeps every `expect` self-expiring |
 
 Reason length follows the case: a recurring idiomatic suppression takes a terse reason (`"tests"`); a genuine one-off exception takes a specific reason naming the constraint (`"matches DB schema constructor; builder planned for v2"`).
 
@@ -57,6 +63,7 @@ Reason length follows the case: a recurring idiomatic suppression takes a terse 
 | Only referenced by tests | It IS dead. Delete it; refactor valuable tests onto live paths |
 | Test helper / infrastructure | Move behind `#[cfg(test)]`, not a suppression |
 | Tested but not yet called from prod | `#[cfg_attr(not(test), expect(dead_code, reason = "…"))]` — still a WIP marker |
+| Lint names several items, some called by others | Expect only the roots — a suppressed item is a liveness root, so its callees count as used and per-item expects go unfulfilled |
 | End of task/PR | Wire it up or delete it — none should remain |
 
 Never prefix a Serde field with `_` to silence `dead_code`: it changes the expected key. Delete the field or use `#[expect(dead_code, reason = "…")]`. See `serde.md` § Dead Fields.
