@@ -3,8 +3,7 @@
 ## When to Use This Reference
 
 - Writing unit tests
-- Testing async code
-- Testing time-dependent code
+- Testing async or time-dependent code
 - Mocking dependencies
 - Running tests efficiently
 
@@ -22,50 +21,74 @@
 
 ## The Rule
 
-**Use `cargo nextest run` over `cargo test`.** Nextest is faster, provides better output, and handles test isolation properly.
+**Use `cargo nextest run` over `cargo test`.** Nextest is faster, gives better output, and handles test isolation properly. **But nextest does not run doctests** — run `cargo test --doc` separately, or they never execute.
 
 **Use `cargo clippy` over `cargo check`.** Clippy catches more issues at compile time.
 
 ## Testing Philosophy
 
-**Test behavior, not implementation.** Tests should verify what the code does, not how it does it. If you refactor internals and tests break but behavior hasn't changed, the tests were too tightly coupled.
+**Test behavior, not implementation.** If you refactor internals and tests break but behavior hasn't changed, the tests were too tightly coupled.
 
-**The testing pyramid in Rust:**
-- **Unit tests** (`#[cfg(test)] mod tests`): Fast, test individual functions and types. These are your primary tests.
-- **Integration tests** (`tests/` directory): Test the public API of your crate. These verify that modules work together correctly.
-- **Doc tests** (code blocks in `///` comments): Serve double duty as documentation examples and tests. Keep them simple and focused on demonstrating usage.
+**Test against a known-good oracle; never restate the implementation.** A test that echoes the code's own constants or logic is tautological — it passes by construction and catches nothing. For a port or migration, the previous implementation is the oracle: assert the new code reproduces its observable outputs (counts, totals, classifications).
 
-**When to write each type:**
-- Unit test: Pure functions, type conversions, validation logic, error cases
-- Integration test: Multi-module workflows, public API contracts, behavior that spans several components
-- Doc test: Every public function that isn't self-explanatory. These ensure documentation stays accurate.
+**Data-dependent tests: gate on presence, and pair with a hermetic fixture.** When a test needs private or `.gitignore`d data, skip it non-silently if the fixture is absent (`eprintln!` a notice and `return`, never a silent pass or a hard panic on a fresh clone). Always pair such a gated test with an always-running synthetic fixture exercising the same code paths — the gated test pins the real numbers, the hermetic test pins the logic.
 
-## Test Strategy
+## Mocking Strategy
 
-### Integration vs Unit Tests in Rust
+**Prefer real implementations over mocks when possible.** Mocks verify that you *call* dependencies correctly, not that the system works.
 
-In Rust, unit tests have a unique advantage: they can access private items via `use super::*`. This makes them ideal for testing internal logic without exposing it in the public API.
+Use mocks when the real dependency is slow (network, database), has side effects (emails, payments), or when you need error paths that are hard to trigger otherwise. Avoid mocks for pure functions, when an in-memory implementation works (e.g. a `HashMap` instead of a mocked database), or when the mock setup exceeds the code under test.
 
-Integration tests (in `tests/`) only see the public API. Use them for:
-- Verifying the public contract
-- Testing multi-crate interactions
-- Ensuring your public API is ergonomic (if a test is awkward to write, the API might need improvement)
+`mockall` mocks a trait via `#[automock]`, then sets per-call expectations:
 
-### Mocking Strategy
+```rust
+use mockall::{automock, predicate::*};
 
-**Prefer real implementations over mocks when possible.** Mocks can give false confidence — they test that you call dependencies correctly, not that the system works.
+#[automock]
+trait Database {
+    fn get_user(&self, id: &str) -> Option<User>;
+}
 
-Use mocks when:
-- The real dependency is slow (network, database)
-- The real dependency has side effects (sending emails, charging payments)
-- You need to test error paths that are hard to trigger with real dependencies
+let mut mock = MockDatabase::new();
+mock.expect_get_user()
+    .with(eq("user123"))
+    .returning(|_| Some(User { name: "Alice".into() }));
+```
 
-Avoid mocks when:
-- The dependency is a pure function or simple data structure
-- You can use an in-memory implementation (e.g., `HashMap` instead of a mocked database)
-- The mock setup is more complex than the code being tested
+`mockito` stands up an HTTP server and asserts the expected request was made:
 
-### Property-Based Testing with proptest
+```rust
+let mut server = mockito::Server::new_async().await;
+let mock = server.mock("GET", "/api/users")
+    .with_status(200)
+    .with_body(r#"{"name": "Alice"}"#)
+    .create_async().await;
+// ... drive the client against server.url() ...
+mock.assert_async().await;
+```
+
+## Unit vs Integration Tests
+
+Unit tests (`#[cfg(test)] mod tests` with `use super::*`) can reach private items — use them for internal logic. Integration tests in `tests/` see only the public API; use them for the public contract and multi-crate interactions. If an integration test is awkward to write, treat that as a signal the API itself needs work.
+
+## Time-Dependent Tests
+
+Use `start_paused = true` to control time without real delays:
+
+```rust
+use tokio::time::{self, Duration};
+
+#[tokio::test(start_paused = true)]
+async fn test_timeout() {
+    let start = time::Instant::now();
+    time::advance(Duration::from_secs(60)).await;  // no real wait
+    assert_eq!(start.elapsed(), Duration::from_secs(60));
+}
+```
+
+`time::sleep` also completes instantly under a paused clock, so a 1-hour sleep costs nothing.
+
+## Property-Based Testing with proptest
 
 Beyond simple examples, proptest excels at finding edge cases you wouldn't think to test manually.
 
@@ -79,28 +102,23 @@ Beyond simple examples, proptest excels at finding edge cases you wouldn't think
 | Commutativity | `f(a, b) == f(b, a)` | Set operations, merging |
 | No panic | Function doesn't panic on any input | Parsers, validators |
 
-**proptest strategies for common Rust types:**
-
 ```rust
 use proptest::prelude::*;
 
 proptest! {
-    // Test that validated types reject invalid input and accept valid input
+    // Validated types reject invalid input and accept valid input
     #[test]
     fn username_validation_is_consistent(s in "\\PC{0,200}") {
         match Username::try_new(&s) {
             Ok(username) => {
-                // Valid usernames should survive a roundtrip
+                // Valid usernames survive a roundtrip
                 assert_eq!(Username::try_new(username.as_str()).unwrap(), username);
             }
-            Err(_) => {
-                // Invalid input should always be rejected
-                assert!(Username::try_new(&s).is_err());
-            }
+            Err(_) => assert!(Username::try_new(&s).is_err()),
         }
     }
 
-    // Test that serialization roundtrips
+    // Serialization roundtrips
     #[test]
     fn json_roundtrip(value in any::<MyType>()) {
         let json = serde_json::to_string(&value).unwrap();
@@ -110,213 +128,15 @@ proptest! {
 }
 ```
 
-## Patterns
-
-### Basic Test Structure
-
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_basic_functionality() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-
-    #[test]
-    #[should_panic(expected = "division by zero")]
-    fn test_panic_case() {
-        divide(1, 0);
-    }
-}
-```
-
-### Async Tests with Tokio
-
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_async_operation() {
-        let result = fetch_data().await;
-        assert!(result.is_ok());
-    }
-}
-```
-
-### Time-Dependent Tests
-
-Use `start_paused = true` to control time without real delays:
-
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use tokio::time::{self, Duration};
-
-    #[tokio::test(start_paused = true)]
-    async fn test_timeout() {
-        let start = time::Instant::now();
-
-        // Advance time without actually waiting
-        time::advance(Duration::from_secs(60)).await;
-
-        assert_eq!(start.elapsed(), Duration::from_secs(60));
-    }
-
-    #[tokio::test(start_paused = true)]
-    async fn test_with_sleep() {
-        // This completes instantly because time is paused
-        time::sleep(Duration::from_secs(3600)).await;
-    }
-}
-```
-
-### Mocking with mockall
-
-```rust
-use mockall::{automock, predicate::*};
-
-#[automock]
-trait Database {
-    fn get_user(&self, id: &str) -> Option<User>;
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_with_mock_db() {
-        let mut mock = MockDatabase::new();
-        mock.expect_get_user()
-            .with(eq("user123"))
-            .returning(|_| Some(User { name: "Alice".into() }));
-
-        let service = UserService::new(mock);
-        let user = service.find_user("user123");
-
-        assert_eq!(user.unwrap().name, "Alice");
-    }
-}
-```
-
-### HTTP Mocking with mockito
-
-```rust
-#[cfg(test)]
-mod tests {
-    use mockito::{Server, Matcher};
-
-    #[tokio::test]
-    async fn test_http_client() {
-        let mut server = Server::new_async().await;
-
-        let mock = server.mock("GET", "/api/users")
-            .with_status(200)
-            .with_body(r#"{"name": "Alice"}"#)
-            .create_async()
-            .await;
-
-        let client = HttpClient::new(&server.url());
-        let response = client.get_user().await.unwrap();
-
-        mock.assert_async().await;
-        assert_eq!(response.name, "Alice");
-    }
-}
-```
-
-### Property-Based Testing with proptest
-
-```rust
-use proptest::prelude::*;
-
-proptest! {
-    #[test]
-    fn test_parse_roundtrip(s in "\\PC*") {
-        let parsed = parse(&s);
-        if let Ok(value) = parsed {
-            let serialized = value.to_string();
-            assert_eq!(parse(&serialized), Ok(value));
-        }
-    }
-
-    #[test]
-    fn test_addition_commutative(a in 0i32..1000, b in 0i32..1000) {
-        assert_eq!(add(a, b), add(b, a));
-    }
-}
-```
-
-## Test Organization
-
-```
-src/
-├── lib.rs
-├── parser.rs
-└── parser/
-    └── tests.rs      # Integration tests for parser module
-
-tests/
-├── integration.rs    # Integration tests (separate compilation unit)
-└── common/
-    └── mod.rs        # Shared test utilities
-```
-
-### Inline Tests vs Test Files
-
-```rust
-// Inline tests - good for unit tests
-#[cfg(test)]
-mod tests {
-    use super::*;
-    // Tests here have access to private items
-}
-```
-
-```rust
-// tests/integration.rs - good for integration tests
-// Only has access to public API
-use mycrate::public_function;
-
-#[test]
-fn test_public_api() { }
-```
-
 ## Running Tests
 
 ```bash
-# Run all tests with nextest
-cargo nextest run
-
-# Run specific test
-cargo nextest run test_name
-
-# Run tests in a specific module
-cargo nextest run parser::
-
-# Run tests with output
-cargo nextest run --no-capture
-
-# Run only doc tests (nextest doesn't run these)
-cargo test --doc
+cargo nextest run                # all tests
+cargo nextest run test_name      # a specific test
+cargo nextest run parser::       # a module
+cargo nextest run --no-capture   # with stdout/stderr
+cargo test --doc                 # doctests — nextest does NOT run these
 ```
-
-## Common Mistakes
-
-| Mistake | Fix |
-|---------|-----|
-| Using `cargo test` | Use `cargo nextest run` |
-| Real sleeps in tests | Use `start_paused = true` |
-| Flaky time-based tests | Use tokio time mocking |
-| Testing private functions extensively | Test through public API |
-| No test isolation | Each test should be independent |
-| Forgetting doc tests with nextest | Run `cargo test --doc` separately |
 
 ## Resources
 

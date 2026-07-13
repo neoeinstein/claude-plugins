@@ -153,19 +153,14 @@ unsafe {
     let initialized = value.assume_init();
 }
 
-// Array initialization pattern
-let mut array: [MaybeUninit<String>; 10] = unsafe {
-    MaybeUninit::uninit().assume_init()
-};
-
+// Array pattern: fill each slot, then transmute once all are initialized
+let mut array: [MaybeUninit<String>; 10] =
+    unsafe { MaybeUninit::uninit().assume_init() };
 for (i, elem) in array.iter_mut().enumerate() {
-    elem.write(format!("item {}", i));
+    elem.write(format!("item {i}"));
 }
-
-// SAFETY: All elements initialized
-let array: [String; 10] = unsafe {
-    std::mem::transmute(array)
-};
+// SAFETY: every element was written above
+let array: [String; 10] = unsafe { std::mem::transmute(array) };
 ```
 
 ### Pointer Read/Write Operations
@@ -215,38 +210,6 @@ Guidelines:
 - Use `#[repr(C)]` for structs crossing FFI
 - Use `CString`/`CStr` for NUL-terminated strings
 - Wrap foreign functions in safe Rust APIs
-
-## STOP and Reconsider
-
-**Before writing `unsafe` without a `// SAFETY:` comment:** Write the SAFETY comment first. If you cannot clearly articulate what invariants the unsafe code upholds and what preconditions must be true, the code is not safe to write. The comment is not documentation overhead — it's the proof that you've thought through the safety argument.
-
-```rust
-// ❌ BAD - no safety argument
-unsafe { ptr.read() }
-
-// ✅ GOOD - safety argument documented
-// SAFETY: `ptr` was obtained from `Box::into_raw` and has not been
-// deallocated. The pointer is properly aligned for `T` and the
-// pointed-to value is initialized.
-unsafe { ptr.read() }
-```
-
-**Before using `mem::transmute`:** There is almost certainly a safer alternative. Use `as` casts for numeric conversions, `from_ne_bytes`/`to_ne_bytes` for byte reinterpretation, `bytemuck` or `zerocopy` for zero-copy type punning with safety checks. `transmute` is the nuclear option — only reach for it when nothing else works AND you have a `#[repr(C)]` or `#[repr(transparent)]` guarantee.
-
-**Before marking a type as `unsafe impl Send` or `unsafe impl Sync`:** Can you prove the type is actually safe to send/share across threads? The compiler didn't implement these traits automatically for a reason. Document exactly why the implementation is sound.
-
-## Anti-Patterns
-
-| Anti-Pattern | Problem |
-|--------------|---------|
-| Large unsafe blocks | Impossible to audit |
-| Missing SAFETY comments | Undocumented invariants |
-| `unsafe` for "performance" without measurement | Often unnecessary |
-| Trusting arbitrary safe code | Unsafe should trust *specific* safe code |
-| Using `transmute` when safer alternatives exist | Prefer `as`, `from_bytes` |
-| `mem::uninitialized()` | Deprecated, causes UB—use `MaybeUninit` |
-| Raw `*mut T` when null is impossible | Use `NonNull<T>` |
-| Dereferencing unaligned pointers | Use `ptr::read_unaligned` |
 
 ## Verification Tools
 

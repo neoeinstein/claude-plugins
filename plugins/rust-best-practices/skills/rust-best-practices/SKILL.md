@@ -17,13 +17,11 @@ Reference guide for writing idiomatic, safe, and maintainable Rust code. Load to
 | Handling errors, seeing `.unwrap()` or `.expect()` | `references/error-handling.md` |
 | Using `bool` parameters, designing enums | `references/enum-design.md` |
 | Designing public APIs, builders, trait implementations | `references/api-design.md` |
-| Configuring Clippy, setting up lints | `references/clippy-config.md` |
-| A lint fires and you're considering suppression | `references/clippy-config.md` — **fix first**, suppress only as last resort |
-| Adding `#[allow]`/`#[expect]` annotations, dead code warnings | `references/clippy-config.md` |
+| Setting up lints, workspace config, or the unsafe policy | `references/lint-setup.md` |
+| A lint fired; considering suppression; `#[allow]`/`#[expect]`; `dead_code` | `references/responding-to-lints.md` |
 | Structuring code, applying design patterns | `references/patterns.md` |
 | Organizing modules, separating pure logic from I/O | `references/fcis.md` |
 | Unsure how to use a crate, need documentation | `references/finding-docs.md` |
-| Writing doc comments, examples in docs | `references/writing-docs.md` |
 | Writing or running tests, choosing test strategy | `references/testing.md` |
 | Using async/await, tokio, channels, spawn, timeout | `references/async.md` |
 | Choosing mutex types, graceful shutdown, cancellation | `references/async.md` |
@@ -32,8 +30,11 @@ Reference guide for writing idiomatic, safe, and maintainable Rust code. Load to
 | `Send`/`Sync` bounds, thread safety, Arc/Mutex | `references/send-sync.md` |
 | Serde, JSON serialization, derive attributes | `references/serde.md` |
 | Building a JSON/message payload you own — reaching for `serde_json::json!` or `serde_json::to_vec` of an ad-hoc value | `references/serde.md` |
-| `dead_code` on `Deserialize` structs, DTO dead fields | `references/dead-code-in-serde-structs.md` |
+| Choosing a serialization stack (serde vs facet) | `references/serde.md` |
+| `dead_code` on `Deserialize` structs, DTO dead fields | `references/serde.md` |
 | Using aliri_braid, seeing `new()` conflicts or `Infallible` errors | `references/type-safety.md` |
+
+Deep facet-ecosystem work (`#[derive(Facet)]`, facet-json/csv, figue, strid, rediff) is covered by the separate `facet` skill, which loads on its own triggers — never reference it as a `references/` path.
 
 ## Error Message → Reference
 
@@ -67,32 +68,21 @@ Reference guide for writing idiomatic, safe, and maintainable Rust code. Load to
 
 **Prefer Minimal Visibility:** Start with the most restrictive visibility. Use `pub(super)` for parent-module access, `pub(crate)` for crate-internal access, and `pub` only when external crates need it. Apply the same discipline to struct fields.
 
+**Suppress with `#[expect]`, never `#[allow]` in source.** `allow` belongs only in `Cargo.toml` config; source uses `#[expect(lint, reason = "…")]` only. See `references/lint-setup.md` (config) and `references/responding-to-lints.md` (mechanics).
+
 ## STOP — Anti-Rationalization Table
 
 Before writing code that matches these patterns, STOP and reconsider.
 
 | You're about to... | Common rationalization | What to do instead |
 |---------------------|------------------------|--------------------|
-| Use `.unwrap()` outside tests | "It can't fail here" / "I'll fix it later" | Use `?`, `.expect("reason")`, or handle the error. Load `references/error-handling.md`. |
-| Skip creating a newtype for a domain value | "It's just a String" / "Too much boilerplate" | Create the newtype. The boilerplate is the point — it prevents bugs. Load `references/type-safety.md`. |
-| Skip input validation on a public constructor | "Callers will pass valid data" | Add `TryFrom` or a `fn new() -> Result<Self, E>`. Validate at construction, not at use. |
-| Hold a `MutexGuard` across `.await` | "The lock is quick" / "It won't deadlock" | Restructure: clone the data, drop the guard, then await. Load `references/async.md`. |
-| Write `unsafe` without a `// SAFETY:` comment | "It's obviously safe" / "I'll document later" | Write the SAFETY comment first. If you can't articulate the invariants, the code isn't safe. Load `references/unsafe.md`. |
-| Use `bool` for a two-state concept | "An enum is overkill" | Create the enum. Bools are meaningless at call sites: `set_active(true)` vs `set_status(Status::Active)`. Load `references/enum-design.md`. |
 | Add a catch-all `_ =>` to a match on your own enum | "I don't want to update every match" | That's exactly why you should — exhaustive matching catches forgotten variants at compile time. |
 | Use `mem::transmute` | "I know the layout" | You probably don't. Use `from_ne_bytes`, `bytemuck`, or `zerocopy` instead. Load `references/unsafe.md`. |
-| Suppress a lint instead of fixing the code | "It's just a style lint" / "The code is more readable this way" | **Fix the code.** Lints exist to improve quality. If clippy says `collapsible_if`, collapse it. If it says `manual_let_else`, use `let ... else`. Suppression is only for structural constraints you can't change (framework signatures, verified false positives). Load `references/clippy-config.md`. |
-| Add `#[allow(dead_code)]` | "Conditionally dead — used in tests" / "Not used yet" | If only used in tests, the code IS dead — delete it. Refactor valuable tests to use live paths, or move test infrastructure behind `#[cfg(test)]`. Use `#[expect(dead_code, reason = "...")]` for interim work only, never `#[allow]`. Load `references/clippy-config.md`. |
-| Leave `#[expect(dead_code)]` at end of task | "Field exists but not yet used" / "Will be wired up later" | Clean it up NOW. Either wire it up or remove it. `expect(dead_code)` is a WIP marker, not a permanent annotation. |
-| Prefix a Serde field with `_` to suppress `dead_code` | "It's just a naming convention" | **Never.** `_field` changes the expected JSON/SQL key. Delete the field or use `#[expect(dead_code, reason = "...")]` with a structural reason. Load `references/dead-code-in-serde-structs.md`. |
-| Keep unused fields on a `Deserialize` struct | "The field must match the schema" / "It documents the response" | Serde ignores unknown fields. Dead DTO fields aren't safety — they're coupling. Delete the field; comment the schema. Load `references/dead-code-in-serde-structs.md`. |
-| Assume `Option<T>` handles missing JSON keys | "`Option` means optional" / "null and missing are the same" | **They are not.** `null` → `None` is serde_json. Missing key → `None` is an implicit derive feature. Always use `#[serde(default)]` on `Option<T>` fields where the key may be absent. Load `references/serde.md`. |
-| Skip `skip_serializing_if` on `Option<T>` | "null in the output is fine" | It inflates payloads and breaks PATCH semantics. Pair `#[serde(default)]` with `#[serde(skip_serializing_if = "Option::is_none")]`. For three-state (missing/null/present), use `optional_field::Field<T>`. Load `references/serde.md`. |
-| Reach for `serde_json::json!` or build a `serde_json::Value` by hand for data you own | "It's just a small payload" / "A struct is overkill for three fields" | Define a `#[derive(Serialize)]` struct — the shape becomes a compiler-checked type, not magic-string keys. `json!` is for genuinely dynamic/forwarded JSON only. Load `references/serde.md`. |
+| Suppress a lint instead of fixing the code | "It's just a style lint" / "more readable this way" | **Fix the code.** Suppression is only for structural constraints you can't change. Load `references/responding-to-lints.md`. |
+| Add `#[allow(dead_code)]` | "Conditionally dead — used in tests" / "Not used yet" | If only tests use it, it IS dead — delete it. `#[expect(dead_code, reason = "…")]` is for interim work only. Load `references/responding-to-lints.md`. |
 
 ## Authoritative Resources
 
-- [Rust API Guidelines](https://rust-lang.github.io/api-guidelines/) — Definitive guide from Rust library team
-- [Clippy Lints](https://rust-lang.github.io/rust-clippy/master/index.html) — 750+ lints, searchable
-- [Rust Design Patterns](https://rust-unofficial.github.io/patterns/) — Community patterns and anti-patterns
-- [Effective Rust](https://effective-rust.com/) — 35 specific ways to improve your code
+- [Rust API Guidelines](https://rust-lang.github.io/api-guidelines/) — the library team's design conventions
+- [Clippy lint index](https://rust-lang.github.io/rust-clippy/master/index.html) — searchable list of every lint
+- [Microsoft Pragmatic Rust Guidelines](https://microsoft.github.io/rust-guidelines/) — agent-consultable corpus (`agents/all.txt`)

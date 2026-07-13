@@ -18,13 +18,7 @@
 | Initialization / startup | `.expect("reason")` acceptable - fail fast |
 | Production runtime code | **Never** `.unwrap()` or `.expect()` |
 
-## The Rule
-
-**Libraries:** Return typed errors consumers can match on.
-**Applications:** Use `color_eyre::Result` with `.wrap_err()` for context.
-**Tests:** `.unwrap()` is fine.
-**Initialization:** `.expect("descriptive reason")` acceptable - fail fast on startup.
-**Production runtime:** Always use `?` or proper error handling. No `.unwrap()`, no `.expect()`.
+Libraries return typed errors consumers can match on; applications use `color_eyre::Result` with `.wrap_err()` for context. In production runtime code always use `?` — no `.unwrap()`, no `.expect()`.
 
 ## Patterns
 
