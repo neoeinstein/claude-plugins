@@ -18,7 +18,8 @@ Reference guide for writing idiomatic, safe, and maintainable Rust code. Load to
 | Using `bool` parameters, designing enums | `references/enum-design.md` |
 | Designing public APIs, builders, trait implementations | `references/api-design.md` |
 | Adding a `pub use`, choosing where a public item lives, re-exports, preludes | `references/re-exports.md` |
-| Setting up lints, workspace config, or the unsafe policy | `references/lint-setup.md` |
+| Choosing the lint set or the unsafe policy | `references/lint-setup.md` |
+| Cargo workspace setup: inheriting package/lints/dependencies across members, `[workspace.*]`, version drift, scaffolding a new member crate | `references/workspace.md` |
 | A lint fired; considering suppression; `#[allow]`/`#[expect]`; `dead_code`; `unfulfilled_lint_expectations` | `references/responding-to-lints.md` |
 | Structuring code, applying design patterns | `references/patterns.md` |
 | Organizing modules, separating pure logic from I/O | `references/fcis.md` |
@@ -83,6 +84,7 @@ Before writing code that matches these patterns, STOP and reconsider.
 | Add `#[allow(dead_code)]` | "Conditionally dead — used in tests" / "Not used yet" | If only tests use it, it IS dead — delete it. `#[expect(dead_code, reason = "…")]` is for interim work only. Load `references/responding-to-lints.md`. |
 | Add a module-wide `#![expect(…)]` or suppress `unfulfilled_lint_expectations` | "One suppression covers the module" / "the expectation warning is noise" | The warning means an `#[expect]` is stale or mis-scoped — delete it or `cfg_attr` it to the cfg where the lint fires. Load `references/responding-to-lints.md`. |
 | Re-export an item at an additional public path | "Shorter import" / "easier to find" | Every public item gets ONE canonical path; root promotion is for marquee items only. Load `references/re-exports.md`. |
+| Declare a dependency version in a workspace member crate | "Only this crate uses it" | Hoist to `[workspace.dependencies]`; per-member versions drift and can duplicate in the tree. Load `references/workspace.md`. |
 
 ## Authoritative Resources
 

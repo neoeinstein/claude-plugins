@@ -1,6 +1,6 @@
 {
   "name": "rust-best-practices",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "description": "Idiomatic Rust development guidance: a Rust best-practices skill, a facet-ecosystem skill, and an auto-formatting hook",
   "author": {
     "name": "Marcus Griep",
