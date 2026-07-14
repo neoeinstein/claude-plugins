@@ -1,0 +1,40 @@
+name: Update Typst package index
+
+# Refreshes the vendored Typst Universe package index for the `typst` plugin's skill.
+# Adapted from lucifer1004/claude-skill-typst (MIT) — see
+# plugins/typst/skills/typst/ATTRIBUTION.md.
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # Monday 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-index:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - uses: actions/setup-python@v6.2.0
+        with:
+          python-version: '3.x'
+
+      - name: Fetch packages and rebuild BM25 index
+        run: |
+          python3 plugins/typst/tools/fetch-packages.py \
+            --output-dir plugins/typst/skills/typst/data
+
+      - name: Commit if changed
+        run: |
+          data=plugins/typst/skills/typst/data
+          if [ -z "$(git status --porcelain -- "$data/packages.json" "$data/packages-bm25.json")" ]; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$data/packages.json" "$data/packages-bm25.json"
+          git commit -m "data(typst): update package index"
+          git push

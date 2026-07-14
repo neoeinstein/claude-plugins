@@ -1,6 +1,6 @@
 # neoeinstein-plugins
 
-Last verified: 2026-02-20
+Last verified: 2026-07-14
 
 ## Purpose
 
