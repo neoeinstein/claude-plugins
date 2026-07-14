@@ -75,4 +75,14 @@
 
   // Static footer line shown on every page regardless of classification (or none).
   footer-note: none,
+
+  // Admonition/callout styling by kind — GitHub-style alerts:
+  // `> [!NOTE]`, `> [!TIP]`, `> [!IMPORTANT]`, `> [!WARNING]`, `> [!CAUTION]`.
+  callouts: (
+    note:      (color: rgb("#1b6bb5"), title: "Note"),
+    tip:       (color: rgb("#1a7f37"), title: "Tip"),
+    important: (color: rgb("#8250df"), title: "Important"),
+    warning:   (color: rgb("#9a6700"), title: "Warning"),
+    caution:   (color: rgb("#c84a3b"), title: "Caution"),
+  ),
 )

@@ -27,6 +27,7 @@ readonly PLUGIN_ROOT="${SCRIPT_DIR:h}"
 readonly LIB="$PLUGIN_ROOT/lib/report.typ"
 readonly BRAND_TEMPLATE="$PLUGIN_ROOT/assets/brand.template.typ"
 readonly CMARKER="@preview/cmarker:0.1.10"
+readonly MITEX="@preview/mitex:0.2.7"
 readonly MMDR="@preview/mmdr:0.2.2"
 readonly DIAGRAPH="@preview/diagraph:0.3.7"
 readonly CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
@@ -53,19 +54,58 @@ find_project_brand() {
   return 1
 }
 
+frontmatter_value() {
+  # Echo the scalar value of <key> from a file's leading YAML frontmatter, else nothing.
+  local file="$1" key="$2" line val in_fm=0
+  [[ "$(head -1 -- "$file")" == "---" ]] || return 0
+  while IFS= read -r line; do
+    if (( ! in_fm )); then [[ "$line" == "---" ]] && in_fm=1; continue; fi
+    [[ "$line" == "---" ]] && break
+    if [[ "$line" == "${key}:"* ]]; then
+      val="${line#*:}"
+      val="${val#"${val%%[![:space:]]*}"}"    # ltrim
+      val="${val%"${val##*[![:space:]]}"}"    # rtrim
+      [[ "$val" == \"*\" || "$val" == \'*\' ]] && val="${val[2,-2]}"  # unquote
+      print -r -- "$val"
+      return 0
+    fi
+  done < "$file"
+  return 0
+}
+
+# Resolve a brand selector (bare name or path) into BRAND_RESOLVED, or die.
+resolve_brand_selector() {
+  local sel="$1" docdir="$2"
+  case "$sel" in
+    "~")   sel="$HOME" ;;
+    "~/"*) sel="$HOME/${sel#\~/}" ;;
+  esac
+  if [[ "$sel" == */* || "$sel" == *.typ ]]; then           # a path
+    local path="$sel"
+    [[ "$path" != /* ]] && path="$docdir/$path"             # relative → doc dir
+    [[ -f "$path" ]] || die "brand file from frontmatter not found: $path"
+    BRAND_RESOLVED="${path:A}"
+  else                                                       # a named kit
+    local named="$CONFIG_HOME/markdown-to-pdf/brands/$sel/brand.typ"
+    [[ -f "$named" ]] || die "brand '$sel' (from frontmatter) not found at $named"
+    BRAND_RESOLVED="${named:A}"
+  fi
+}
+
+# Resolve the active brand into BRAND_RESOLVED (empty = default theme).
+# Precedence: --brand flag > frontmatter `brand:` > project/user search chain.
 resolve_brand() {
-  # Args: input-file. Echoes absolute brand path, or nothing. Honors $BRAND override.
   local input="$1"
+  BRAND_RESOLVED=""
   if [[ -n "${BRAND:-}" ]]; then
     [[ -f "$BRAND" ]] || die "brand file not found: $BRAND"
-    print -r -- "${BRAND:A}"
-    return 0
+    BRAND_RESOLVED="${BRAND:A}"; return 0
   fi
+  local sel; sel="$(frontmatter_value "$input" brand)"
+  if [[ -n "$sel" ]]; then resolve_brand_selector "$sel" "${input:A:h}"; return 0; fi
   local p
-  if p="$(find_project_brand "$input")"; then print -r -- "${p:A}"; return 0; fi
-  if [[ -f "$CONFIG_HOME/markdown-to-pdf/brand.typ" ]]; then
-    print -r -- "${CONFIG_HOME:A}/markdown-to-pdf/brand.typ"
-  fi
+  if p="$(find_project_brand "$input")"; then BRAND_RESOLVED="${p:A}"; return 0; fi
+  [[ -f "$CONFIG_HOME/markdown-to-pdf/brand.typ" ]] && BRAND_RESOLVED="${CONFIG_HOME:A}/markdown-to-pdf/brand.typ"
   return 0
 }
 
@@ -84,11 +124,11 @@ check_prereqs() {
 
   if (( ok )); then
     local t; t="$(mktemp -d)"
-    printf '#import "%s"\n' "$CMARKER" > "$t/c.typ"
+    printf '#import "%s"\n#import "%s": mitex\n' "$CMARKER" "$MITEX" > "$t/c.typ"
     if typst compile --root / "$t/c.typ" "$t/c.pdf" &>/dev/null; then
-      print "  cmarker   reachable ($CMARKER)"
+      print "  packages  core reachable ($CMARKER, $MITEX)"
     else
-      print "  cmarker   NOT cached — first run needs network to fetch @preview packages"
+      print "  packages  NOT cached — first run needs network to fetch @preview packages"
     fi
     rm -rf "$t"
   fi
@@ -169,7 +209,7 @@ readonly INPUT_ABS="${INPUT:A}"
 readonly INPUT_DIR="${INPUT_ABS:h}"
 [[ -z "$OUTPUT" ]] && OUTPUT="${INPUT_ABS%.*}.$FORMAT"
 
-BRAND_RESOLVED="$(resolve_brand "$INPUT_ABS")"
+resolve_brand "$INPUT_ABS"   # sets BRAND_RESOLVED (empty = default theme)
 
 # ── Diagram detection (only import WASM packages that are actually used) ──────
 HAS_MERMAID=0; HAS_DOT=0

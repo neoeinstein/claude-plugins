@@ -80,4 +80,10 @@
 
   // ── Static footer line (all pages, any classification) ──────────────────────
   // footer-note: "ACME, Inc.",
+
+  // ── Callout colors (GitHub-style admonitions) ───────────────────────────────
+  // Override the accent color and/or title for note / tip / important / warning / caution.
+  // callouts: (
+  //   warning: (color: rgb("#9a6700"), title: "Heads up"),
+  // ),
 )

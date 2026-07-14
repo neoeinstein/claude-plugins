@@ -12,6 +12,7 @@
 // never pull WASM packages.
 
 #import "@preview/cmarker:0.1.10"
+#import "@preview/mitex:0.2.7": mitex
 #import "../themes/default.typ": default-theme
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -40,6 +41,51 @@
   let key = str(name)
   if key in theme.classifications { theme.classifications.at(key) }
   else { (label: key, color: theme.palette.muted, footer: none) }
+}
+
+// ── admonitions / callouts ────────────────────────────────────────────────────
+
+// Rewrite GitHub-style alert blockquotes — `> [!NOTE]` and friends — into a `mtpcallout`
+// call injected via cmarker's raw-typst. The body stays Markdown (cmarker renders it); the
+// marker line is consumed. Non-alert blockquotes pass through untouched.
+#let _preprocess-admonitions(md) = {
+  let lines = md.split("\n")
+  let out = ()
+  let i = 0
+  while i < lines.len() {
+    let m = lines.at(i).match(regex("^> \[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*$"))
+    if m != none {
+      let kind = lower(m.captures.at(0))
+      let body = ()
+      i += 1
+      while i < lines.len() and lines.at(i).starts-with(">") {
+        body.push(lines.at(i).replace(regex("^>[ ]?"), ""))
+        i += 1
+      }
+      out.push("<!--raw-typst #mtpcallout(\"" + kind + "\")[-->")
+      out.push(body.join("\n"))
+      out.push("<!--raw-typst ]-->")
+    } else {
+      out.push(lines.at(i))
+      i += 1
+    }
+  }
+  out.join("\n")
+}
+
+#let _render-callout(kind, body, theme) = {
+  let fallback = (color: theme.palette.quote-bar, title: upper(kind.slice(0, 1)) + kind.slice(1))
+  let c = theme.callouts.at(kind, default: fallback)
+  block(
+    width: 100%, inset: (x: 12pt, y: 9pt), radius: 3pt, above: 1em, below: 1em,
+    fill: c.color.lighten(88%),
+    stroke: (left: 3pt + c.color),
+    {
+      text(fill: c.color, weight: "bold")[#c.title]
+      parbreak()
+      body
+    },
+  )
 }
 
 // ── title block ──────────────────────────────────────────────────────────────
@@ -145,13 +191,17 @@
     image(p, ..a)
   }
 
-  let raw-md = if source != none { read(source) } else { "" }
+  let raw-md = _preprocess-admonitions(if source != none { read(source) } else { "" })
   let (meta, mdbody) = cmarker.render-with-metadata(
     raw-md,
     metadata-block: "frontmatter-yaml",
     set-document-title: false,
     smart-punctuation: true,
-    scope: (image: img),
+    scope: (
+      image: img,
+      mtpcallout: (kind, body) => _render-callout(kind, body, theme),
+    ),
+    math: mitex,   // LaTeX math in $…$ / $$…$$ rendered via mitex
   )
   if meta == none or type(meta) != dictionary { meta = (:) }
 
