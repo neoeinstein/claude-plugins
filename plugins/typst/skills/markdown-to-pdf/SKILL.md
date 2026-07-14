@@ -36,11 +36,13 @@ classification: Confidential
 ---
 ```
 
+Booleans `justify` and `hyphenate` also work here to override paragraph style for one document.
+
 ## Branding
 
 A `brand.typ` exporting `#let brand = (...)` — a partial dict deep-merged over the default
-theme — overrides `palette`, `fonts`, `page` (incl. `numbering`), `logo`, `classifications`,
-and `footer-note`. Resolution, unless `--brand` is given: project `.markdown-to-pdf/brand.typ`
+theme — overrides `palette`, `fonts`, `page` (incl. `numbering`), `paragraph`
+(`justify`/`hyphenate`), `logo`, `classifications`, and `footer-note`. Resolution, unless `--brand` is given: project `.markdown-to-pdf/brand.typ`
 → `~/.config/markdown-to-pdf/brand.typ`.
 
 `--init-brand [--global]` scaffolds a commented starter — **that file documents every key.**

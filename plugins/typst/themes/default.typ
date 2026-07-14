@@ -42,6 +42,15 @@
     code:  9pt,
   ),
 
+  // Body paragraphs. Ragged-right (justify: false) avoids stretched word-spacing,
+  // especially around inline code; with hyphenate: false words never split. Both are
+  // overridable per document via frontmatter `justify:` / `hyphenate:`. Headings and the
+  // title never hyphenate regardless.
+  paragraph: (
+    justify:   false,
+    hyphenate: false,
+  ),
+
   page: (
     paper:         "us-letter",
     margin:        (x: 1in, y: 1in),
