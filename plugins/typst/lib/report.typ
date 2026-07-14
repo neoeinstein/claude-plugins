@@ -141,17 +141,27 @@
   s.replace(sentinel, "\\$")
 }
 
-// Apply _math-replace to a line, skipping inline `code` spans verbatim.
+// Escape a stray single `~` before cmarker sees it. pulldown-cmark's GFM strikethrough treats
+// "a matching pair of one or two tildes" as a valid delimiter (not just ~~), so a lone ~ used for
+// "approximately" (~$1K, ~16%) is a live delimiter; when it resolves against unrelated
+// **bold**/*italic* in the same paragraph it corrupts adjacent text. A genuine ~~strikethrough~~
+// (any run of 2+ tildes) is left untouched. (A 3+ tilde run is also left as-is — vanishingly rare.)
+#let _escape-stray-tilde(seg) = seg.replace(
+  regex("~+"), m => if m.text.len() == 1 { "\\~" } else { m.text },
+)
+
+// Apply _math-replace then _escape-stray-tilde to a line, skipping inline `code` spans verbatim.
 #let _process-line-math(line) = {
   let spans = line.matches(regex("`[^`]*`"))
-  if spans.len() == 0 { return _math-replace(line) }
+  let step = seg => _escape-stray-tilde(_math-replace(seg))
+  if spans.len() == 0 { return step(line) }
   let out = ""
   let idx = 0
   for cs in spans {
-    out += _math-replace(line.slice(idx, cs.start)) + line.slice(cs.start, cs.end)
+    out += step(line.slice(idx, cs.start)) + line.slice(cs.start, cs.end)
     idx = cs.end
   }
-  out + _math-replace(line.slice(idx))
+  out + step(line.slice(idx))
 }
 
 // Currency/code-safe inline-math pass over the whole document, skipping fenced code blocks.

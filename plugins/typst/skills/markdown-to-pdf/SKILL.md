@@ -77,4 +77,5 @@ display equations. Escape `\$` to force a literal that would otherwise render.
 - **HTML** export is experimental (prints a disclaimer); page headers/footers are omitted.
 - **Math** — inline `$…$` converts only with a LaTeX token or a short variable (see Math);
   currency, `$PATH`, and code `$` stay literal. Use ` ```math ` for display; escape `\$` to force
-  a literal. A `~` beside `**bold**` can mis-strike (upstream cmarker bug) — escape `\~`.
+  a literal.
+- **Tildes** — a lone `~` (e.g. `~16%`, `~$1K`) is kept literal; `~~text~~` is strikethrough.
