@@ -36,8 +36,8 @@ classification: Confidential
 ---
 ```
 
-Booleans `justify` and `hyphenate` also work here to override paragraph style for one
-document. `brand:` selects a brand kit for the document — a bare name (resolved to
+Booleans `justify` and `hyphenate` also work here. `brand:` selects a brand kit for the
+document — a bare name (resolved to
 `~/.config/markdown-to-pdf/brands/<name>/brand.typ`) or a path (relative to the doc, or
 absolute). The `--brand` flag overrides it.
 
@@ -61,6 +61,13 @@ external tools), fetched only when used. Other languages stay syntax-highlighted
 GitHub-style alerts render as colored callouts: `> [!NOTE]`, `> [!TIP]`, `> [!IMPORTANT]`,
 `> [!WARNING]`, `> [!CAUTION]`. Their colors and titles are theme-configurable (`callouts`).
 
+## Math
+
+Inline `$…$` auto-renders (via mitex) when the body carries a LaTeX token (`\ ^ _ { }`) or is a
+short variable (`$x$`, `$dx$`, `$p_{99}$`). Currency (`$3.2K`), env vars (`$PATH`, `$PATH=$HOME`),
+long tokens (`$HOME$`), and `$` inside code stay literal. Use a ` ```math ` fenced block for
+display equations. Escape `\$` to force a literal that would otherwise render.
+
 ## Gotchas
 
 - **Errors** → run `--check` (typst version, package reachability, brand resolution); report
@@ -68,5 +75,6 @@ GitHub-style alerts render as colored callouts: `> [!NOTE]`, `> [!TIP]`, `> [!IM
 - **Image paths** resolve against the document's directory; a brand's `logo` path against
   `brand.typ`.
 - **HTML** export is experimental (prints a disclaimer); page headers/footers are omitted.
-- **Math** — LaTeX in `$…$` / `$$…$$` renders via mitex. Literal `$` (currency) in prose or
-  tables is left alone; escape as `\$` only if one is ever mis-parsed as math.
+- **Math** — inline `$…$` converts only with a LaTeX token or a short variable (see Math);
+  currency, `$PATH`, and code `$` stay literal. Use ` ```math ` for display; escape `\$` to force
+  a literal. A `~` beside `**bold**` can mis-strike (upstream cmarker bug) — escape `\~`.
