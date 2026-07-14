@@ -88,6 +88,89 @@
   )
 }
 
+// ── frontmatter + math ────────────────────────────────────────────────────────
+
+// Split a leading `---` YAML frontmatter block off the Markdown. Returns (meta, body).
+// Parsed here (not via cmarker) so the math setting is known before rendering.
+#let _split-frontmatter(md) = {
+  let lines = md.split("\n")
+  if lines.len() == 0 or lines.at(0).trim() != "---" { return ((:), md) }
+  let close = none
+  let i = 1
+  while i < lines.len() {
+    if lines.at(i).trim() == "---" { close = i; break }
+    i += 1
+  }
+  if close == none { return ((:), md) }
+  let front = lines.slice(1, close).join("\n")
+  let body = if close + 1 < lines.len() { lines.slice(close + 1).join("\n") } else { "" }
+  let meta = if front.trim() == "" { (:) } else { yaml(bytes(front)) }
+  if type(meta) != dictionary { meta = (:) }
+  (meta, body)
+}
+
+// A ```math fenced block → centered display equation via mitex. Unambiguous (unlike $…$),
+// so it is always enabled.
+#let _render-math-block(src) = block(
+  width: 100%, above: 0.9em, below: 0.9em,
+  align(center, mitex(src)),
+)
+
+// Detect real inline `$…$` math in a code-free text segment and inject it into mitex, while
+// leaving currency ($) and shell vars ($PATH, $PATH=$HOME) alone. A span converts only when
+// ALL hold: it opens/closes on a non-space char (Pandoc rule), the char after the closing `$`
+// is not a digit (so `$5 and $10` is safe), and the body contains a LaTeX signal char
+// (\ ^ _ { }) — which separates `$E=mc^2$` from `$3.2K` and `$PATH=$HOME`. `\$` is protected
+// via a sentinel so escapes stay literal.
+#let _math-replace(seg) = {
+  let sentinel = "\u{E000}"
+  let s = seg.replace("\\$", sentinel)
+  s = s.replace(regex("\\$([^\\s$](?:[^$\n]*?[^\\s$])?)\\$"), m => {
+    let body = m.captures.at(0)
+    let next-is-digit = s.slice(m.end).match(regex("^[0-9]")) != none
+    // math if the body carries a LaTeX token (\ ^ _ { }) OR is a short 1-2 char identifier
+    // (x, n, dx) — the latter lets simple variables render while long tokens ($PATH$, $HOME$)
+    // and shell assignments ($FOO=$BAR) stay literal.
+    let is-math = body.contains(regex("[\\\\^_{}]")) or body.match(regex("^[A-Za-z][A-Za-z0-9]?$")) != none
+    if (not next-is-digit) and is-math {
+      "<!--raw-typst #mitex(block: false, \"" + body.replace("\\", "\\\\").replace("\"", "\\\"") + "\")-->"
+    } else {
+      m.text
+    }
+  })
+  s.replace(sentinel, "\\$")
+}
+
+// Apply _math-replace to a line, skipping inline `code` spans verbatim.
+#let _process-line-math(line) = {
+  let spans = line.matches(regex("`[^`]*`"))
+  if spans.len() == 0 { return _math-replace(line) }
+  let out = ""
+  let idx = 0
+  for cs in spans {
+    out += _math-replace(line.slice(idx, cs.start)) + line.slice(cs.start, cs.end)
+    idx = cs.end
+  }
+  out + _math-replace(line.slice(idx))
+}
+
+// Currency/code-safe inline-math pass over the whole document, skipping fenced code blocks.
+#let _extract-inline-math(md) = {
+  let out = ()
+  let in-fence = false
+  for line in md.split("\n") {
+    if line.trim().match(regex("^(```+|~~~+)")) != none {
+      in-fence = not in-fence
+      out.push(line)
+    } else if in-fence {
+      out.push(line)
+    } else {
+      out.push(_process-line-math(line))
+    }
+  }
+  out.join("\n")
+}
+
 // ── title block ──────────────────────────────────────────────────────────────
 
 #let _title-block(meta, theme, paged) = {
@@ -191,19 +274,20 @@
     image(p, ..a)
   }
 
-  let raw-md = _preprocess-admonitions(if source != none { read(source) } else { "" })
-  let (meta, mdbody) = cmarker.render-with-metadata(
-    raw-md,
-    metadata-block: "frontmatter-yaml",
-    set-document-title: false,
+  let (meta, body-raw) = _split-frontmatter(if source != none { read(source) } else { "" })
+  // Inline $…$ math is detected by our own currency/code-safe scanner (not cmarker's, which
+  // eats currency); ```math handles display. cmarker's own math is off (math: none).
+  let body-md = _extract-inline-math(_preprocess-admonitions(body-raw))
+  let mdbody = cmarker.render(
+    body-md,
     smart-punctuation: true,
     scope: (
       image: img,
       mtpcallout: (kind, body) => _render-callout(kind, body, theme),
+      mitex: mitex,
     ),
-    math: mitex,   // LaTeX math in $…$ / $$…$$ rendered via mitex
+    math: none,
   )
-  if meta == none or type(meta) != dictionary { meta = (:) }
 
   let cls-name = if classification != none { classification } else {
     meta.at("classification", default: none)
@@ -271,6 +355,9 @@
       else if calc.even(y) { pal.table-stripe } else { none },
   )
   show table.cell.where(y: 0): set text(fill: pal.table-head-text, weight: "bold")
+
+  // ── ```math fenced block → display equation (always on) ──
+  show raw.where(lang: "math"): it => _render-math-block(it.text)
 
   // ── diagram interception (no-op unless a handler is supplied) ──
   show raw.where(lang: "mermaid"): it => if "mermaid" in raw-handlers {
