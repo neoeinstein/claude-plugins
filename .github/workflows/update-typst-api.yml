@@ -1,0 +1,57 @@
+name: Update Typst API index
+
+# Refreshes the vendored Typst `main`-channel API index for the `typst` plugin's skill.
+# The stable API snapshots (api-0.15.0, api-0.14.2) are pinned and only regenerated on a
+# Typst release; this workflow keeps the unreleased `main` channel current.
+# Adapted from lucifer1004/claude-skill-typst (MIT) — see
+# plugins/typst/skills/typst/ATTRIBUTION.md.
+
+on:
+  schedule:
+    - cron: '0 7 * * 1'  # Monday 07:00 UTC (after package update)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-index:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - uses: actions/setup-python@v6.2.0
+        with:
+          python-version: '3.x'
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Clone typst
+        run: git clone --depth 1 https://github.com/typst/typst /tmp/typst-repo
+
+      - name: Export upstream main API entries
+        run: |
+          mkdir -p /tmp/typst-repo/docs/src/bin
+          cp plugins/typst/tools/typst-api-exporter.rs /tmp/typst-repo/docs/src/bin/export-api.rs
+          cd /tmp/typst-repo
+          cargo run -p typst-docs --bin export-api --release -- \
+            --out /tmp/typst-api-main-entries.json
+
+      - name: Build main API index and BM25
+        run: |
+          python3 plugins/typst/tools/fetch-api-docs.py /tmp/typst-api-main-entries.json \
+            --input-format entries \
+            --output-stem api-main \
+            --out-dir plugins/typst/skills/typst/data
+
+      - name: Commit if changed
+        run: |
+          data=plugins/typst/skills/typst/data
+          if [ -z "$(git status --porcelain -- "$data/api-main.json" "$data/api-main-bm25.json")" ]; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$data/api-main.json" "$data/api-main-bm25.json"
+          git commit -m "data(typst): update main API index"
+          git push
