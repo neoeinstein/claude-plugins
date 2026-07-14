@@ -66,9 +66,9 @@
       }
     },
     {
-      "name": "markdown-to-pdf",
-      "source": "./plugins/markdown-to-pdf",
-      "category": "productivity",
+      "name": "typst",
+      "source": "./plugins/typst",
+      "category": "development",
       "author": {
         "name": "Marcus Griep",
         "email": "marcus@griep.us"

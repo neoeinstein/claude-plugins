@@ -25,6 +25,7 @@ Then browse and install individual plugins:
 | **askama** | 0.1.0 | Askama Rust template engine guidance for writing and debugging templates |
 | **htmx-alpine** | 0.1.0 | HTMX and Alpine.js patterns for server-driven web applications |
 | **mise** | 0.1.0 | mise toolchain manager guidance for consistent development environments |
+| **typst** | 0.2.0 | Typst authoring skill + a markdown-to-pdf workflow: Markdown → branded PDF/HTML via a pure Typst pipeline |
 
 ## Repository Structure
 
@@ -36,7 +37,8 @@ claude-plugins/
 │   ├── rust-best-practices/      # Rust development skill + rustfmt hook
 │   ├── askama/                   # Askama template guidance
 │   ├── htmx-alpine/             # HTMX + Alpine.js patterns
-│   └── mise/                    # mise toolchain management
+│   ├── mise/                    # mise toolchain management
+│   └── typst/                   # Typst authoring skill + markdown-to-pdf workflow
 └── README.md
 ```
 
@@ -61,6 +63,15 @@ Patterns for building server-driven web applications with HTMX and Alpine.js. La
 ### mise
 
 Guidance for using mise as a toolchain manager. Covers both `mise.toml` (for repos you control) and `mise.local.toml` (for repos you contribute to).
+
+### typst
+
+Bundles two skills: a comprehensive **Typst** authoring reference (vendored from
+[lucifer1004/claude-skill-typst](https://github.com/lucifer1004/claude-skill-typst), MIT) and a
+**markdown-to-pdf** workflow that converts Markdown to branded PDF or HTML through a pure Typst
+pipeline (cmarker + a themeable document engine). Branding is pluggable per project or per user
+— colors, fonts, logo, page numbers, and confidentiality footers — via a `brand.typ` override
+the plugin can scaffold.
 
 ## License
 

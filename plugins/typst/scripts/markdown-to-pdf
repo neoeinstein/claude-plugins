@@ -1,0 +1,216 @@
+#!/usr/bin/env zsh
+set -eu
+
+# markdown-to-pdf — Convert a Markdown file to a styled PDF or HTML page using Typst.
+#
+# Pure Typst pipeline: Markdown is rendered by the cmarker package inside a themed
+# document engine (../lib/report.typ) and compiled by `typst`. No pandoc / LaTeX.
+#
+# Usage:
+#   markdown-to-pdf <input.md> [output]         # → input.pdf (or output)
+#   markdown-to-pdf --format html <input.md>    # → input.html
+#   markdown-to-pdf --brand path/brand.typ <input.md>
+#   markdown-to-pdf --classification Confidential <input.md>
+#   markdown-to-pdf --init-brand [--global]     # scaffold a brand override file
+#   markdown-to-pdf --check                      # diagnostics
+#
+# Branding resolves via a search chain (first found wins), unless --brand is given:
+#   1. <nearest ancestor of input>/.markdown-to-pdf/brand.typ   (project-local)
+#   2. ${XDG_CONFIG_HOME:-~/.config}/markdown-to-pdf/brand.typ  (user-global)
+#
+# Prerequisites (macOS):  brew install typst
+#   Typst auto-downloads @preview packages on first use (needs network once):
+#     cmarker (always), mmdr (```mermaid), diagraph (```dot / ```graphviz).
+
+readonly SCRIPT_DIR="${0:A:h}"
+readonly PLUGIN_ROOT="${SCRIPT_DIR:h}"
+readonly LIB="$PLUGIN_ROOT/lib/report.typ"
+readonly BRAND_TEMPLATE="$PLUGIN_ROOT/assets/brand.template.typ"
+readonly CMARKER="@preview/cmarker:0.1.10"
+readonly MMDR="@preview/mmdr:0.2.2"
+readonly DIAGRAPH="@preview/diagraph:0.3.7"
+readonly CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+
+die() { print -u2 -- "Error: $*"; exit 1 }
+
+# Quote an arbitrary string as a Typst string literal.
+typst_str() {
+  local s="$1"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  print -r -- "\"$s\""
+}
+
+# ── Brand resolution ─────────────────────────────────────────────────────────
+
+find_project_brand() {
+  # Search from the given file's directory upward for .markdown-to-pdf/brand.typ
+  local dir="${1:A:h}"
+  while [[ "$dir" != "/" && -n "$dir" ]]; do
+    [[ -f "$dir/.markdown-to-pdf/brand.typ" ]] && { print -r -- "$dir/.markdown-to-pdf/brand.typ"; return 0 }
+    dir="${dir:h}"
+  done
+  return 1
+}
+
+resolve_brand() {
+  # Args: input-file. Echoes absolute brand path, or nothing. Honors $BRAND override.
+  local input="$1"
+  if [[ -n "${BRAND:-}" ]]; then
+    [[ -f "$BRAND" ]] || die "brand file not found: $BRAND"
+    print -r -- "${BRAND:A}"
+    return 0
+  fi
+  local p
+  if p="$(find_project_brand "$input")"; then print -r -- "${p:A}"; return 0; fi
+  if [[ -f "$CONFIG_HOME/markdown-to-pdf/brand.typ" ]]; then
+    print -r -- "${CONFIG_HOME:A}/markdown-to-pdf/brand.typ"
+  fi
+  return 0
+}
+
+# ── Diagnostics ──────────────────────────────────────────────────────────────
+
+check_prereqs() {
+  local ok=1
+  print "markdown-to-pdf — Typst pipeline diagnostics\n"
+
+  if command -v typst &>/dev/null; then
+    print "  typst     $(typst --version)"
+  else
+    print -u2 "  typst     NOT FOUND — brew install typst"
+    ok=0
+  fi
+
+  if (( ok )); then
+    local t; t="$(mktemp -d)"
+    printf '#import "%s"\n' "$CMARKER" > "$t/c.typ"
+    if typst compile --root / "$t/c.typ" "$t/c.pdf" &>/dev/null; then
+      print "  cmarker   reachable ($CMARKER)"
+    else
+      print "  cmarker   NOT cached — first run needs network to fetch @preview packages"
+    fi
+    rm -rf "$t"
+  fi
+
+  print "\n  Optional diagram packages (fetched on demand):"
+  print "    ${MMDR}   — for \`\`\`mermaid blocks"
+  print "    ${DIAGRAPH} — for \`\`\`dot / \`\`\`graphviz blocks"
+
+  print "\n  Brand override search chain (per document dir):"
+  print "    1. <project>/.markdown-to-pdf/brand.typ"
+  print "    2. $CONFIG_HOME/markdown-to-pdf/brand.typ"
+  [[ -f "$CONFIG_HOME/markdown-to-pdf/brand.typ" ]] && print "       (user-global brand present)"
+
+  (( ok )) && print "\nReady." || { print -u2 "\nMissing prerequisites — see above."; return 1 }
+  return 0
+}
+
+# ── Scaffold a brand file ────────────────────────────────────────────────────
+
+init_brand() {
+  local dest_dir
+  if (( INIT_GLOBAL )); then
+    dest_dir="$CONFIG_HOME/markdown-to-pdf"
+  else
+    dest_dir="$PWD/.markdown-to-pdf"
+  fi
+  local dest="$dest_dir/brand.typ"
+  [[ -f "$dest" ]] && die "brand file already exists: $dest
+       Edit it, or remove it first."
+  mkdir -p "$dest_dir"
+  cp "$BRAND_TEMPLATE" "$dest"
+  print "Created $dest"
+  print "Edit it to set colors, fonts, logo, page numbers, and confidentiality footers."
+  print "Add a logo by dropping the image next to brand.typ and setting the 'logo' key."
+}
+
+# ── Argument parsing ─────────────────────────────────────────────────────────
+
+FORMAT=pdf
+BRAND=""
+CLASSIFICATION=""
+INIT_GLOBAL=0
+DO_CHECK=0
+DO_INIT=0
+INPUT=""
+OUTPUT=""
+
+while (( $# )); do
+  case "$1" in
+    --check)            DO_CHECK=1; shift ;;
+    --init-brand)       DO_INIT=1; shift ;;
+    --global)           INIT_GLOBAL=1; shift ;;
+    --format)           FORMAT="${2:?--format needs pdf|html}"; shift 2 ;;
+    --format=*)         FORMAT="${1#--format=}"; shift ;;
+    --brand)            BRAND="${2:?--brand needs a path}"; shift 2 ;;
+    --brand=*)          BRAND="${1#--brand=}"; shift ;;
+    --classification)   CLASSIFICATION="${2:?--classification needs a level}"; shift 2 ;;
+    --classification=*) CLASSIFICATION="${1#--classification=}"; shift ;;
+    -h|--help)          sed -n '4,21p' "$0"; exit 0 ;;
+    --*)                die "unknown option: $1" ;;
+    *)
+      if [[ -z "$INPUT" ]]; then INPUT="$1"
+      elif [[ -z "$OUTPUT" ]]; then OUTPUT="$1"
+      else die "unexpected argument: $1"; fi
+      shift ;;
+  esac
+done
+
+(( DO_CHECK )) && { check_prereqs; exit $?; }
+(( DO_INIT ))  && { init_brand; exit 0; }
+
+[[ "$FORMAT" == "pdf" || "$FORMAT" == "html" ]] || die "--format must be pdf or html (got: $FORMAT)"
+[[ -n "$INPUT" ]] || die "no input file. Usage: markdown-to-pdf <input.md> [output]  (see --help)"
+[[ -f "$INPUT" ]] || die "input file not found: $INPUT"
+command -v typst &>/dev/null || die "typst not found — brew install typst  (run --check for diagnostics)"
+
+readonly INPUT_ABS="${INPUT:A}"
+readonly INPUT_DIR="${INPUT_ABS:h}"
+[[ -z "$OUTPUT" ]] && OUTPUT="${INPUT_ABS%.*}.$FORMAT"
+
+BRAND_RESOLVED="$(resolve_brand "$INPUT_ABS")"
+
+# ── Diagram detection (only import WASM packages that are actually used) ──────
+HAS_MERMAID=0; HAS_DOT=0
+grep -Eq '^[[:space:]]*```[[:space:]]*mermaid([[:space:]]|$)'        "$INPUT_ABS" && HAS_MERMAID=1
+grep -Eq '^[[:space:]]*```[[:space:]]*(dot|graphviz)([[:space:]]|$)' "$INPUT_ABS" && HAS_DOT=1
+
+# ── Generate main.typ ────────────────────────────────────────────────────────
+BUILD="$(mktemp -d)"
+trap 'rm -rf "$BUILD"' EXIT
+MAIN="$BUILD/main.typ"
+{
+  print -r -- "#import $(typst_str "$LIB"): report"
+  (( HAS_DOT ))     && print -r -- "#import \"$DIAGRAPH\""
+  (( HAS_MERMAID )) && print -r -- "#import \"$MMDR\""
+  [[ -n "$BRAND_RESOLVED" ]] && print -r -- "#import $(typst_str "$BRAND_RESOLVED"): brand"
+  print -r -- "#let _handlers = ("
+  (( HAS_MERMAID )) && print -r -- "  mermaid: t => align(center, mmdr.mermaid(t)),"
+  (( HAS_DOT ))     && print -r -- "  dot: t => align(center, diagraph.render(t)),"
+  (( HAS_DOT ))     && print -r -- "  graphviz: t => align(center, diagraph.render(t)),"
+  print -r -- ")"
+  local overrides="(:)"; [[ -n "$BRAND_RESOLVED" ]] && overrides="brand"
+  local brand_dir="."; [[ -n "$BRAND_RESOLVED" ]] && brand_dir="${BRAND_RESOLVED:h}"
+  local cls="none"; [[ -n "$CLASSIFICATION" ]] && cls="$(typst_str "$CLASSIFICATION")"
+  print -r -- "#show: report.with("
+  print -r -- "  source: $(typst_str "$INPUT_ABS"),"
+  print -r -- "  doc-dir: $(typst_str "$INPUT_DIR"),"
+  print -r -- "  brand-dir: $(typst_str "$brand_dir"),"
+  print -r -- "  overrides: $overrides,"
+  print -r -- "  format: $(typst_str "$FORMAT"),"
+  print -r -- "  classification: $cls,"
+  print -r -- "  raw-handlers: _handlers,"
+  print -r -- ")"
+} > "$MAIN"
+
+# ── Compile ──────────────────────────────────────────────────────────────────
+typst_args=(compile --root /)
+[[ "$FORMAT" == "html" ]] && typst_args+=(--features html -f html)
+typst_args+=("$MAIN" "$OUTPUT")
+
+if typst "${typst_args[@]}"; then
+  print "Generated: $OUTPUT"
+else
+  die "typst compilation failed (see errors above)"
+fi
