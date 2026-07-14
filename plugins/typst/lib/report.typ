@@ -51,6 +51,7 @@
 
   if not (has("title") or has("subtitle")) { return }
 
+  set text(hyphenate: false)   // titles break at word boundaries, never mid-word
   set align(theme.title-block.align)
   block(below: 1.2em, {
     if has("title") {
@@ -159,13 +160,19 @@
   }
   let cls = _classification(theme, cls-name)
 
+  // paragraph justify + hyphenation: theme default, overridable per document
+  let just = theme.paragraph.at("justify", default: false)
+  let hyph = theme.paragraph.at("hyphenate", default: false)
+  if type(meta.at("justify", default: none)) == bool { just = meta.justify }
+  if type(meta.at("hyphenate", default: none)) == bool { hyph = meta.hyphenate }
+
   // ── document + text ──
   set document(
     title: meta.at("title", default: none),
     author: _authors(meta.at("author", default: none)),
   )
-  set text(font: f.body, size: s.body, fill: pal.text)
-  set par(justify: true, leading: 0.62em, spacing: 0.95em)
+  set text(font: f.body, size: s.body, fill: pal.text, hyphenate: hyph)
+  set par(justify: just, leading: 0.62em, spacing: 0.95em)
 
   // ── page furniture (paged output only) ──
   set page(
@@ -180,7 +187,7 @@
 
   // ── headings: keep the element (semantic HTML), restyle text ──
   set heading(numbering: none)
-  show heading: set text(font: f.heading, weight: "bold")
+  show heading: set text(font: f.heading, weight: "bold", hyphenate: false)
   show heading.where(level: 1): set text(fill: pal.heading, size: s.h1)
   show heading.where(level: 2): set text(fill: pal.heading-sub, size: s.h2)
   show heading.where(level: 3): set text(fill: pal.heading-sub, size: s.h3)
