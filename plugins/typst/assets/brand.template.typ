@@ -60,10 +60,11 @@
   // Paths are relative to THIS brand.typ file. Provide a light-background variant
   // (used on the white page) and optionally a dark one.
   // logo: (
-  //   light:  "logo.png",
-  //   dark:   "logo-white.png",
-  //   height: 0.32in,
-  //   align:  right,              // left | center | right
+  //   light:       "logo.png",
+  //   dark:        "logo-white.png",
+  //   height:      0.32in,        // page 1
+  //   height-rest: 0.2in,         // pages 2+ (defaults to 60% of height)
+  //   align:       right,         // left | center | right
   // ),
 
   // ── Confidentiality footer ──────────────────────────────────────────────────
