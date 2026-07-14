@@ -1,6 +1,6 @@
 {
   "name": "typst",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Typst authoring guidance plus a markdown-to-pdf workflow: convert Markdown to branded PDF or HTML through a pure Typst pipeline with pluggable, per-document theming",
   "author": {
     "name": "Marcus Griep",

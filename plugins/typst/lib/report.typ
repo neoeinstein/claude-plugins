@@ -243,10 +243,11 @@
   if src == none { return none }
   if not src.starts-with("/") { src = brand-dir + "/" + src }
   let h = logo.at("height", default: 0.32in)
+  let h-rest = logo.at("height-rest", default: h * 0.6)  // lighter on pages 2+
   let a = logo.at("align", default: right)
   context {
     set align(a)
-    box(image(src, height: h))
+    box(image(src, height: if here().page() == 1 { h } else { h-rest }))
   }
 }
 
