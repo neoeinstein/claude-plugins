@@ -51,6 +51,11 @@
     // margin: (x: 1in, y: 1in),
   ),
 
+  // ── Body paragraphs ─────────────────────────────────────────────────────────
+  // Defaults are ragged-right, no hyphenation. A document can override either via
+  // frontmatter (`justify: true` / `hyphenate: true`). Headings never hyphenate.
+  // paragraph: (justify: false, hyphenate: false),
+
   // ── Logo (page header) ──────────────────────────────────────────────────────
   // Paths are relative to THIS brand.typ file. Provide a light-background variant
   // (used on the white page) and optionally a dark one.
@@ -75,4 +80,10 @@
 
   // ── Static footer line (all pages, any classification) ──────────────────────
   // footer-note: "ACME, Inc.",
+
+  // ── Callout colors (GitHub-style admonitions) ───────────────────────────────
+  // Override the accent color and/or title for note / tip / important / warning / caution.
+  // callouts: (
+  //   warning: (color: rgb("#9a6700"), title: "Heads up"),
+  // ),
 )

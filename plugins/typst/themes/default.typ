@@ -42,6 +42,15 @@
     code:  9pt,
   ),
 
+  // Body paragraphs. Ragged-right (justify: false) avoids stretched word-spacing,
+  // especially around inline code; with hyphenate: false words never split. Both are
+  // overridable per document via frontmatter `justify:` / `hyphenate:`. Headings and the
+  // title never hyphenate regardless.
+  paragraph: (
+    justify:   false,
+    hyphenate: false,
+  ),
+
   page: (
     paper:         "us-letter",
     margin:        (x: 1in, y: 1in),
@@ -66,4 +75,14 @@
 
   // Static footer line shown on every page regardless of classification (or none).
   footer-note: none,
+
+  // Admonition/callout styling by kind — GitHub-style alerts:
+  // `> [!NOTE]`, `> [!TIP]`, `> [!IMPORTANT]`, `> [!WARNING]`, `> [!CAUTION]`.
+  callouts: (
+    note:      (color: rgb("#1b6bb5"), title: "Note"),
+    tip:       (color: rgb("#1a7f37"), title: "Tip"),
+    important: (color: rgb("#8250df"), title: "Important"),
+    warning:   (color: rgb("#9a6700"), title: "Warning"),
+    caution:   (color: rgb("#c84a3b"), title: "Caution"),
+  ),
 )
