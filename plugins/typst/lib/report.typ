@@ -128,10 +128,10 @@
   s = s.replace(regex("\\$([^\\s$](?:[^$\n]*?[^\\s$])?)\\$"), m => {
     let body = m.captures.at(0)
     let next-is-digit = s.slice(m.end).match(regex("^[0-9]")) != none
-    // math if the body carries a LaTeX token (\ ^ _ { }) OR is a short 1-2 char identifier
-    // (x, n, dx) — the latter lets simple variables render while long tokens ($PATH$, $HOME$)
-    // and shell assignments ($FOO=$BAR) stay literal.
-    let is-math = body.contains(regex("[\\\\^_{}]")) or body.match(regex("^[A-Za-z][A-Za-z0-9]?$")) != none
+    // math if the body carries a LaTeX token (\ ^ _ { }), is an equation (contains `=` that is
+    // not a trailing shell assignment like `PATH=`), or is a short 1-2 char variable (x, dx).
+    // Long tokens ($PATH$, $HOME$) and assignments ($FOO=$BAR → body ends in `=`) stay literal.
+    let is-math = body.contains(regex("[\\\\^_{}]")) or (body.contains("=") and not body.ends-with("=")) or body.match(regex("^[A-Za-z][A-Za-z0-9]?$")) != none
     if (not next-is-digit) and is-math {
       "<!--raw-typst #mitex(block: false, \"" + body.replace("\\", "\\\\").replace("\"", "\\\"") + "\")-->"
     } else {

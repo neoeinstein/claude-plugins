@@ -63,10 +63,10 @@ GitHub-style alerts render as colored callouts: `> [!NOTE]`, `> [!TIP]`, `> [!IM
 
 ## Math
 
-Inline `$…$` auto-renders (via mitex) when the body carries a LaTeX token (`\ ^ _ { }`) or is a
-short variable (`$x$`, `$dx$`, `$p_{99}$`). Currency (`$3.2K`), env vars (`$PATH`, `$PATH=$HOME`),
-long tokens (`$HOME$`), and `$` inside code stay literal. Use a ` ```math ` fenced block for
-display equations. Escape `\$` to force a literal that would otherwise render.
+Inline `$…$` auto-renders (via mitex) when the body carries a LaTeX token (`\ ^ _ { }`), is an
+equation (`$p = 0.5$`), or is a short variable (`$x$`, `$p_{99}$`). Currency (`$3.2K`), env vars
+(`$PATH`, `$PATH=$HOME`), long tokens (`$HOME$`), and `$` inside code stay literal. Use a
+` ```math ` fenced block for display; escape `\$` to force a literal that would otherwise render.
 
 ## Gotchas
 
@@ -75,7 +75,7 @@ display equations. Escape `\$` to force a literal that would otherwise render.
 - **Image paths** resolve against the document's directory; a brand's `logo` path against
   `brand.typ`.
 - **HTML** export is experimental (prints a disclaimer); page headers/footers are omitted.
-- **Math** — inline `$…$` converts only with a LaTeX token or a short variable (see Math);
-  currency, `$PATH`, and code `$` stay literal. Use ` ```math ` for display; escape `\$` to force
-  a literal.
+- **Math** — inline `$…$` converts with a LaTeX token, an `=` equation, or a short variable (see
+  Math); currency, `$PATH`, `$FOO=$BAR`, and code `$` stay literal. Use ` ```math ` for display;
+  escape `\$` to force a literal.
 - **Tildes** — a lone `~` (e.g. `~16%`, `~$1K`) is kept literal; `~~text~~` is strikethrough.
