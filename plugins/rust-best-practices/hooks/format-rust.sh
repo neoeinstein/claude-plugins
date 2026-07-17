@@ -14,6 +14,12 @@
 #   4. Plain rustfmt from PATH: nightly when a rustfmt.toml/.rustfmt.toml exists
 #      (for nightly-only options), stable otherwise.
 #
+# Regardless of which toolchain is chosen, the edition is resolved from
+# Cargo.toml and passed as `--edition` (see crate_edition): a bare `rustfmt
+# <file>` defaults to edition 2015, so without this it would silently disagree
+# with `cargo fmt` (which passes the crate's real edition) on import sort order
+# and layout.
+#
 # Why route through mise at all: `mise exec` sets RUSTUP_TOOLCHAIN to the pin and
 # prepends its rust bin, so it wins over a stale RUSTUP_TOOLCHAIN in the
 # environment, a stale PATH entry, rust-toolchain.toml, and the rustup default.
@@ -56,6 +62,38 @@ find_up() {
   return 1
 }
 
+# Resolve the Rust edition the way `cargo fmt` does, and pass it to rustfmt.
+# A bare `rustfmt <file>` (which is what every tier below runs) does NOT read
+# Cargo.toml and defaults to edition 2015, while `cargo fmt` passes the crate's
+# real edition. The two style editions sort imports and lay out code
+# differently, so without this the hook silently fights `cargo fmt`.
+#
+# Walk up from the file and take the first literal `edition = "NNNN"`. A member
+# that inherits via `edition.workspace = true` has no literal, so the walk
+# continues to the workspace-root Cargo.toml where the literal lives.
+crate_edition() {
+  local dir="$file_dir" line
+  while [ -n "$dir" ] && [ "$dir" != "/" ]; do
+    if [ -f "$dir/Cargo.toml" ]; then
+      line=$(grep -m1 -E '^[[:space:]]*edition[[:space:]]*=[[:space:]]*"[0-9]+"' "$dir/Cargo.toml" 2>/dev/null)
+      if [ -n "$line" ]; then
+        printf '%s' "$line" | sed -E 's/.*"([0-9]+)".*/\1/'
+        return 0
+      fi
+    fi
+    dir=$(dirname "$dir")
+  done
+  return 1
+}
+
+# Built once and expanded into every rustfmt call below. Empty (no `--edition`)
+# when no Cargo.toml edition is found, preserving the prior default behavior.
+edition_args=()
+edition=$(crate_edition)
+if [ -n "$edition" ]; then
+  edition_args=(--edition "$edition")
+fi
+
 # Discover a mise-managed, active, installed `rust` tool for this directory, and
 # where it is pinned. Gate on `mise ls --current`, NOT `mise which rustfmt`:
 # `mise which` falls back to PATH when mise manages nothing, so it succeeds even
@@ -79,7 +117,7 @@ fi
 # Format via mise, letting it fail open rather than reformatting with a
 # mismatched PATH rustfmt.
 format_with_mise() {
-  mise -C "$file_dir" exec -- rustfmt "$file_path" 2>/dev/null
+  mise -C "$file_dir" exec -- rustfmt "${edition_args[@]}" "$file_path" 2>/dev/null
   exit 0
 }
 
@@ -93,7 +131,7 @@ fi
 #    toolchain from the file; cd so the file is found relative to its own tree.
 if find_up rust-toolchain.toml rust-toolchain; then
   if command -v rustfmt &>/dev/null; then
-    ( cd "$file_dir" && env -u RUSTUP_TOOLCHAIN rustfmt "$file_path" ) 2>/dev/null || exit 0
+    ( cd "$file_dir" && env -u RUSTUP_TOOLCHAIN rustfmt "${edition_args[@]}" "$file_path" ) 2>/dev/null || exit 0
   fi
   exit 0
 fi
@@ -110,8 +148,8 @@ fi
 
 if find_up rustfmt.toml .rustfmt.toml; then
   # Config found: try nightly (for nightly-only options), fall back to stable
-  rustfmt +nightly "$file_path" 2>/dev/null || rustfmt "$file_path" 2>/dev/null || exit 0
+  rustfmt +nightly "${edition_args[@]}" "$file_path" 2>/dev/null || rustfmt "${edition_args[@]}" "$file_path" 2>/dev/null || exit 0
 else
   # No config: use stable directly
-  rustfmt "$file_path" 2>/dev/null || exit 0
+  rustfmt "${edition_args[@]}" "$file_path" 2>/dev/null || exit 0
 fi
