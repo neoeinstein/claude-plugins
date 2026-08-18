@@ -82,6 +82,15 @@
         "name": "Marcus Griep",
         "email": "marcus@griep.us"
       }
+    },
+    {
+      "name": "marcus-voice",
+      "source": "./plugins/marcus-voice",
+      "category": "productivity",
+      "author": {
+        "name": "Marcus Griep",
+        "email": "marcus@griep.us"
+      }
     }
   ]
 }
