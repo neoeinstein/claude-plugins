@@ -62,6 +62,8 @@ Deep facet-ecosystem work (`#[derive(Facet)]`, facet-json/csv, figue, strid, red
 
 **Enums over Bools:** `enum Visibility { Public, Private }` > `is_public: bool`.
 
+**No stringly-typed dispatch:** a closed vocabulary your own system produces is an enum. Deserialize it at the serde/storage boundary (`rename_all`) so unknown tokens die there; match the enum exhaustively; write each wire token in exactly one `as_str`-style method. `match x.as_str()` outside a boundary converter (a `FromStr` body, a SQL row edge) means the type was lost upstream — recover it there. An edit-time hook in this plugin flags fresh occurrences.
+
 **Make Illegal States Unrepresentable:** Use the type system to prevent invalid data.
 
 **Validate at Construction:** Use `TryFrom`/newtypes with validation in constructors. A `Port(u16)` that rejects 0 is better than validating port values at every call site. Once constructed, the value is always valid.
@@ -79,6 +81,7 @@ Before writing code that matches these patterns, STOP and reconsider.
 | You're about to... | Common rationalization | What to do instead |
 |---------------------|------------------------|--------------------|
 | Add a catch-all `_ =>` to a match on your own enum | "I don't want to update every match" | That's exactly why you should — exhaustive matching catches forgotten variants at compile time. |
+| Match a string against literals (`match x.as_str()`, `x == "…"`, `let Some("…")`) | "The surrounding code already does it" / "it's just one comparison" | The type was lost upstream — recover it (serde enum at the boundary). Surrounding code embodying the anti-pattern is the reason to fix it, not license to extend it. |
 | Use `mem::transmute` | "I know the layout" | You probably don't. Use `from_ne_bytes`, `bytemuck`, or `zerocopy` instead. Load `references/unsafe.md`. |
 | Suppress a lint instead of fixing the code | "It's just a style lint" / "more readable this way" | **Fix the code.** Suppression is only for structural constraints you can't change. Load `references/responding-to-lints.md`. |
 | Add `#[allow(dead_code)]` | "Conditionally dead — used in tests" / "Not used yet" | If only tests use it, it IS dead — delete it. `#[expect(dead_code, reason = "…")]` is for interim work only. Load `references/responding-to-lints.md`. |
