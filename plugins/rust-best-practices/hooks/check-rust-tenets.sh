@@ -14,6 +14,13 @@
 #     .map(|s| s == "…")
 #   error = %e — Display-logging an error field loses the source chain
 #   hygiene — #[allow(, serde(untagged), dbg!, fresh unsafe
+#   identifier-shaped String — a field named id / *_id / *_slug / *_token
+#     typed String/Option<String>/Vec<String>; an id deserves a newtype.
+#     *_name is deliberately NOT flagged: human/display names are
+#     legitimate free text and dominate; machine names acting as
+#     identifiers (script_name, event_name) are real but rare, and a
+#     stem allowlist fuzzy enough to split them would erode trust in
+#     the hook (owner call 2026-08-19)
 #
 # Placement rule: a pattern belongs here only if the rule AND its remedy
 # are repo-free. Repo-owned remedies (project helpers) and runtime-specific
@@ -45,6 +52,8 @@ display_err=$(printf '%s' "$new_code" | grep -nE '(error|source_error|cause) *= 
 
 hygiene=$(printf '%s' "$new_code" | grep -nE '#\[allow\(|serde\(untagged\)|(^|[^a-z_])dbg!\(|unsafe (fn |impl |\{)' | head -3 || true)
 
+stringly_id=$(printf '%s' "$new_code" | grep -nE '(^|[^A-Za-z0-9_])(id|[A-Za-z0-9_]+_(ids?|slugs?|tokens?)): *(Option<|Vec<)?String' | head -3 || true)
+
 msg=""
 if [ -n "$stringly" ]; then
   msg="Stringly dispatch:\n${stringly}\nClosed vocab -> enum at the serde/storage boundary; match the enum; each wire token written once (as_str-style). True boundary converters (FromStr body, SQL row edge) are exempt."
@@ -54,6 +63,9 @@ if [ -n "$display_err" ]; then
 fi
 if [ -n "$hygiene" ]; then
   msg="${msg:+$msg\n\n}Hygiene:\n${hygiene}\nPrefer #[expect(..)] over #[allow(..)]; never serde(untagged) (write a visitor); no dbg!; new unsafe needs a justification comment (see the skill's unsafe reference)."
+fi
+if [ -n "$stringly_id" ]; then
+  msg="${msg:+$msg\n\n}Identifier-shaped String field:\n${stringly_id}\nIds, slugs, and tokens deserve a domain newtype (aliri_braid or a one-line wrapper) so cross-identifier mixups fail to compile. Storage-row/DTO edge structs mirroring a foreign wire format are the legitimate exception."
 fi
 
 if [ -z "$msg" ]; then
