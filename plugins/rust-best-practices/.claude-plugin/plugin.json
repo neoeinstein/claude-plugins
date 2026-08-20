@@ -1,6 +1,6 @@
 {
   "name": "rust-best-practices",
-  "version": "1.9.0",
+  "version": "1.9.1",
   "description": "Idiomatic Rust development guidance: a Rust best-practices skill, a facet-ecosystem skill, an auto-formatting hook, and an advisory edit-time tenet guard (stringly-typed dispatch, identifier-shaped String fields, Display-logged errors, lint hygiene)",
   "author": {
     "name": "Marcus Griep",
